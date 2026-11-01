@@ -1,0 +1,79 @@
+name: Publish to npm
+
+env:
+  NODE_VERSION: '26.12.0'
+  RUST_TOOLCHAIN: '1.89.0'
+
+on:
+  create:
+
+permissions:
+  id-token: write
+  contents: read
+
+jobs:
+  run_hardhat_tests:
+    if: ${{ github.event.ref_type == 'tag' }}
+    runs-on: ubuntu-24.04
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+
+      - name: Setup rust
+        uses: dtolnay/rust-toolchain@v1
+        with:
+          toolchain: ${{ env.RUST_TOOLCHAIN }}
+          targets: wasm32-unknown-unknown
+
+      - run: cargo test
+
+  pack_artifacts:
+    if: ${{ github.event.ref_type == 'tag' }}
+    runs-on: ubuntu-24.04
+    needs:
+      - run_hardhat_tests
+
+    strategy:
+      matrix:
+        target: [web, nodejs]
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+
+      - name: Setup rust
+        uses: dtolnay/rust-toolchain@v1
+        with:
+          toolchain: ${{ env.RUST_TOOLCHAIN }}
+          targets: wasm32-unknown-unknown
+
+      - run: |
+          VERSION=v4.54.1
+          PLATFORM=$(uname | tr '[:upper:]' '[:lower:]')_amd64
+          wget https://github.com/mikefarah/yq/releases/download/${VERSION}/yq_${PLATFORM} -O /usr/local/bin/yq &&\
+          chmod +x /usr/local/bin/yq
+        name: Setup yq
+
+      - run: cargo install wasm-pack
+      - run: cargo build --release
+      - run: wasm-pack build --release --target=${{ matrix.target }} --out-dir ../publish/${{ matrix.target }}
+        working-directory: ./wasm
+
+      - run: yq -i '.name = "indy-besu-vdr-${{ matrix.target }}"' package.json
+        working-directory: ./publish/${{ matrix.target }}
+
+      - run: npm version --allow-same-version --git-tag-version false ${{ github.ref_name }}
+        working-directory: ./publish/${{ matrix.target }}
+
+      - run: npm stage publish
+        working-directory: ./publish/${{ matrix.target }}
