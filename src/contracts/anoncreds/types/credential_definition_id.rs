@@ -126,26 +126,27 @@ impl TryFrom<&str> for ParsedCredentialDefinitionSchemaId {
     type Error = VdrError;
 
     fn try_from(schema_id: &str) -> Result<Self, Self::Error> {
-        let parts = schema_id.split(':').collect::<Vec<&str>>();
-        if parts.len() == 6 {
-            return Ok(ParsedCredentialDefinitionSchemaId {
-                issuer_id: DID::build(parts[1], None, parts[3]),
-                name: parts[4].to_string(),
-                version: parts[5].to_string(),
-                network: Some(parts[2].to_string()),
-            });
-        }
-        if parts.len() == 5 {
-            return Ok(ParsedCredentialDefinitionSchemaId {
-                issuer_id: DID::build(parts[1], None, parts[2]),
-                name: parts[3].to_string(),
-                version: parts[4].to_string(),
-                network: None,
-            });
-        }
-        return Err(VdrError::CommonInvalidData(
-            "Invalid credential definition id provided".to_string(),
-        ));
+        // Schema unique id format (used inside CredDef IDs):
+        //   <issuer_did>:<name>:<version>
+        // where <issuer_did> itself contains ':' separators.
+        let invalid = || {
+            VdrError::CommonInvalidData("Invalid credential definition id provided".to_string())
+        };
+
+        let mut parts = schema_id.rsplitn(3, ':');
+        let version = parts.next().ok_or_else(invalid)?;
+        let name = parts.next().ok_or_else(invalid)?;
+        let issuer_did = parts.next().ok_or_else(invalid)?;
+
+        let issuer_id = DID::from(issuer_did);
+        let parsed_issuer_id = ParsedDid::try_from(&issuer_id).map_err(|_| invalid())?;
+
+        Ok(ParsedCredentialDefinitionSchemaId {
+            issuer_id,
+            name: name.to_string(),
+            version: version.to_string(),
+            network: parsed_issuer_id.network,
+        })
     }
 }
 

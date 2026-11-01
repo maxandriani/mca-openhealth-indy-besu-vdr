@@ -27,7 +27,13 @@ const METHOD_DEACTIVATE_DID: &str = "deactivateDid";
 const METHOD_DEACTIVATE_DID_SIGNED: &str = "deactivateDidSigned";
 const METHOD_RESOLVE_DID: &str = "resolveDid";
 
-pub const INDYBESU_DID_METHOD: &str = "indybesu";
+/// DID method identifier used by this VDR for Indy2-on-Besu.
+///
+/// New (per indy-did-method): `did:indy:besu(:network)?:<address|pubkey>`
+pub const INDYBESU_DID_METHOD: &str = "indy:besu";
+
+/// Legacy method identifier supported for backward compatibility.
+pub const LEGACY_INDYBESU_DID_METHOD: &str = "indybesu";
 
 /// Build a transaction to create a new DID record (IndyDidRegistry.createDid contract method)
 ///

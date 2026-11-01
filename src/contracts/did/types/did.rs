@@ -9,7 +9,19 @@ use serde_derive::{Deserialize, Serialize};
 
 pub const DID_PREFIX: &str = "did";
 
-const DID_SYNTAX: &str = r"did:(?:indybesu|ethr):(?:[a-zA-Z0-9]+:)*0x[a-fA-F0-9]{40}";
+// Indy DID method (incl. Besu-based Indy2) and ethr DID method.
+//
+// Supported identifiers:
+// - Ethereum address: 20 bytes => 40 hex chars
+// - Ethereum public key (common encodings):
+//   - compressed: 33 bytes => 66 hex chars
+//   - uncompressed (no 0x04 prefix): 64 bytes => 128 hex chars
+//   - uncompressed (with 0x04 prefix): 65 bytes => 130 hex chars
+//
+// Note: this regex validates syntax only; the library may still require an address
+// identifier in contexts where an on-chain account address is expected.
+const DID_SYNTAX: &str =
+    r"did:(?:indy:besu|indybesu|ethr):(?:[a-zA-Z0-9]+:)*0x(?:[a-fA-F0-9]{40}|[a-fA-F0-9]{66}|[a-fA-F0-9]{128}|[a-fA-F0-9]{130})";
 const PATH: &str = r"\/[^#?]*";
 const QUERY: &str = r"[?][^#]*";
 const FRAGMENT: &str = r"[#].*";
@@ -106,19 +118,103 @@ impl TryFrom<&DID> for ParsedDid {
     type Error = VdrError;
 
     fn try_from(did: &DID) -> Result<Self, Self::Error> {
-        let parts = did.as_ref().split(':').collect::<Vec<&str>>();
-        match parts.len() {
-            3 => Ok(ParsedDid {
-                method: parts[1].to_string(),
-                network: None,
-                identifier: parts[2].to_string(),
-            }),
-            4 => Ok(ParsedDid {
-                method: parts[1].to_string(),
-                network: Some(parts[2].to_string()),
-                identifier: parts[3].to_string(),
-            }),
-            _ => Err(VdrError::ContractInvalidInputData),
+        let parts: Vec<&str> = did.as_ref().split(':').collect();
+        if parts.len() < 3 {
+            return Err(VdrError::ContractInvalidInputData);
         }
+        if parts[0] != DID_PREFIX {
+            return Err(VdrError::ContractInvalidInputData);
+        }
+
+        let method = parts[1];
+        let identifier = parts
+            .last()
+            .copied()
+            .ok_or(VdrError::ContractInvalidInputData)?;
+        let method_specific: &[&str] = &parts[2..parts.len() - 1];
+
+        // Legacy: did:indybesu(:network)?:<id>
+        if method == "indybesu" {
+            let network = if method_specific.is_empty() {
+                None
+            } else {
+                Some(method_specific.join(":"))
+            };
+            return Ok(ParsedDid {
+                method: method.to_string(),
+                network,
+                identifier: identifier.to_string(),
+            });
+        }
+
+        // New: did:indy:besu(:network)?:<id>
+        if method == "indy" {
+            if method_specific.first().copied() != Some("besu") {
+                return Err(VdrError::ContractInvalidInputData);
+            }
+
+            let network_parts = &method_specific[1..];
+            let network = if network_parts.is_empty() {
+                None
+            } else {
+                Some(network_parts.join(":"))
+            };
+
+            return Ok(ParsedDid {
+                method: "indy:besu".to_string(),
+                network,
+                identifier: identifier.to_string(),
+            });
+        }
+
+        // Generic DID shape: did:<method>(:<network...>)?:<id>
+        let network = if method_specific.is_empty() {
+            None
+        } else {
+            Some(method_specific.join(":"))
+        };
+
+        Ok(ParsedDid {
+            method: method.to_string(),
+            network,
+            identifier: identifier.to_string(),
+        })
+    }
+}
+
+#[cfg(test)]
+mod test {
+    use super::*;
+
+    #[test]
+    fn parse_legacy_indybesu_did() {
+        let did = DID::from("did:indybesu:testnet:0xf0e2db6c8dc6c681bb5d6ad121a107f300e9b2b5");
+        let parsed = ParsedDid::try_from(&did).unwrap();
+        assert_eq!(parsed.method, "indybesu");
+        assert_eq!(parsed.network.as_deref(), Some("testnet"));
+        assert_eq!(
+            parsed.identifier,
+            "0xf0e2db6c8dc6c681bb5d6ad121a107f300e9b2b5"
+        );
+        assert_eq!(
+            parsed.as_short_did().as_ref(),
+            "did:indybesu:0xf0e2db6c8dc6c681bb5d6ad121a107f300e9b2b5"
+        );
+    }
+
+    #[test]
+    fn parse_new_indy_besu_did() {
+        let did = DID::from("did:indy:besu:testnet:0xf0e2db6c8dc6c681bb5d6ad121a107f300e9b2b5");
+        let parsed = ParsedDid::try_from(&did).unwrap();
+        assert_eq!(parsed.method, "indy:besu");
+        assert_eq!(parsed.network.as_deref(), Some("testnet"));
+        assert_eq!(
+            parsed.identifier,
+            "0xf0e2db6c8dc6c681bb5d6ad121a107f300e9b2b5"
+        );
+        assert_eq!(
+            parsed.as_short_did().as_ref(),
+            "did:indy:besu:0xf0e2db6c8dc6c681bb5d6ad121a107f300e9b2b5"
+        );
     }
 }

@@ -17,6 +17,7 @@ use crate::{
     },
     did_indy_registry::{
         build_resolve_did_transaction, parse_resolve_did_result, INDYBESU_DID_METHOD,
+        LEGACY_INDYBESU_DID_METHOD,
     },
     Block, DelegateType, DidAttributeChanged, DidDelegateChanged, DidDocAttribute,
     DidDocumentBuilder, DidEvents, DidOwnerChanged, DidResolutionOptions, LedgerClient, VdrError,
@@ -81,7 +82,7 @@ pub async fn resolve_did(
     let did = parsed_did.as_short_did();
 
     let resolve_result = match parsed_did.method.as_str() {
-        INDYBESU_DID_METHOD => indybesu::resolve(client, &did).await,
+        INDYBESU_DID_METHOD | LEGACY_INDYBESU_DID_METHOD => indybesu::resolve(client, &did).await,
         ETHR_DID_METHOD => ethr::resolve(client, &did, block_tag).await,
         _ => {
             return Ok(DidDocumentWithMeta {

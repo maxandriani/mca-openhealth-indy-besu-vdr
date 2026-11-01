@@ -38,6 +38,36 @@ To use vdr, add this to your `Cargo.toml`:
 indy_besu_vdr = { path = "../path/to/crate" }
 ```
 
+## DID method support
+
+This VDR supports DID resolution and ledger operations for:
+
+- `did:indy:besu` (Indy DID Method on Besu / Indy2)
+- `did:ethr`
+
+### `did:indy:besu` format
+
+Per the official Indy DID Method specification, the Indy2-on-Besu DID format is:
+
+```
+did:indy:besu:(:network?):<ethereum-address|ethereum-public-key>
+```
+
+Examples:
+
+```
+did:indy:besu:0xf0e2db6c8dc6c681bb5d6ad121a107f300e9b2b5
+did:indy:besu:testnet:0xf0e2db6c8dc6c681bb5d6ad121a107f300e9b2b5
+```
+
+Legacy format (still accepted for backward compatibility in resolution flows):
+
+```
+did:indybesu(:network)?:<ethereum-address|ethereum-public-key>
+```
+
+See the spec: https://hyperledger-indy.github.io/indy-did-method/
+
 ## Code formatting
 
 Library uses [Rustfmt](https://rust-lang.github.io/rustfmt/?version=v1.6.0&search=) to define code formatting rules.
