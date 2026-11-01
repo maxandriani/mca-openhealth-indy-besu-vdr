@@ -10,7 +10,9 @@ use crate::{
     client::LedgerClientWrapper,
     error::{JsResult, Result},
     transaction::{TransactionEndorsingDataWrapper, TransactionWrapper},
+    types::{SchemaDataJS, SchemaRecordJS},
 };
+use wasm_bindgen::JsCast;
 
 #[wasm_bindgen(js_name = SchemaRegistry)]
 pub struct SchemaRegistry;
@@ -60,10 +62,10 @@ impl SchemaRegistry {
     pub fn parse_resolve_schema_result(
         client: &LedgerClientWrapper,
         bytes: Vec<u8>,
-    ) -> Result<JsValue> {
+    ) -> Result<SchemaRecordJS> {
         let schema = schema_registry::parse_resolve_schema_result(&client.0, &bytes).as_js()?;
         let result: JsValue = serde_wasm_bindgen::to_value(&schema)?;
-        Ok(result)
+        Ok(result.unchecked_into())
     }
 
     #[wasm_bindgen(js_name = resolveSchema)]
@@ -116,8 +118,10 @@ impl SchemaWrapper {
     }
 
     #[wasm_bindgen(js_name = asValue)]
-    pub fn as_value(&self) -> Result<JsValue> {
-        serde_wasm_bindgen::to_value(&*self.0).map_err(JsValue::from)
+    pub fn as_value(&self) -> Result<SchemaDataJS> {
+        serde_wasm_bindgen::to_value(&*self.0)
+            .map(JsCast::unchecked_into)
+            .map_err(JsValue::from)
     }
 }
 

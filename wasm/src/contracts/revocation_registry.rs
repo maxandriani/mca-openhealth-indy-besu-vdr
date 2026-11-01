@@ -3,13 +3,10 @@
 // SPDX-License-Identifier: Apache-2.0
 
 use indy_besu_vdr::{
-    revocation_registry, AccumKey, Accumulator, Address, CredentialDefinitionId, PublicKeys,
-    RegistryType, RevocationRegistryDefinition, RevocationRegistryDefinitionId,
-    RevocationRegistryDefinitionValue, RevocationRegistryEntry,
+    revocation_registry, Accumulator, Address, CredentialDefinitionId, RegistryType,
+    RevocationRegistryDefinition, RevocationRegistryDefinitionId, RevocationRegistryEntry,
     RevocationRegistryEntryData, RevocationState, RevocationStatusList, VdrResult, DID,
 };
-use serde_json::value;
-use std::borrow::Borrow;
 use std::rc::Rc;
 use wasm_bindgen::prelude::*;
 
@@ -17,7 +14,13 @@ use crate::transaction::{TransactionEndorsingDataWrapper, TransactionWrapper};
 use crate::{
     client::LedgerClientWrapper,
     error::{JsResult, Result},
+    types::{
+        RevocationRegistryDefinitionDataJS, RevocationRegistryDefinitionRecordJS,
+        RevocationRegistryDefinitionValueJS, RevocationRegistryEntryValueJS,
+        RevocationStatusListDataJS,
+    },
 };
+use wasm_bindgen::JsCast;
 
 #[wasm_bindgen(js_name = RevocationRegistry)]
 pub struct RevocationRegistry;
@@ -111,13 +114,13 @@ impl RevocationRegistry {
     pub fn parse_resolve_revocation_registry_definition_result(
         client: &LedgerClientWrapper,
         bytes: Vec<u8>,
-    ) -> Result<JsValue> {
+    ) -> Result<RevocationRegistryDefinitionRecordJS> {
         let rev_reg_def = revocation_registry::parse_resolve_revocation_registry_definition_result(
             &client.0, &bytes,
         )
         .as_js()?;
         let result: JsValue = serde_wasm_bindgen::to_value(&rev_reg_def)?;
-        Ok(result)
+        Ok(result.unchecked_into())
     }
 
     #[wasm_bindgen(js_name = resolveRevocationRegistryDefinition)]
@@ -185,7 +188,7 @@ impl RevocationRegistryDefinitionWrapper {
         issuer_id: String,
         cred_def_id: String,
         tag: String,
-        value: JsValue,
+        value: RevocationRegistryDefinitionValueJS,
     ) -> RevocationRegistryDefinitionWrapper {
         //TODO: probably a better way to do this
         // let accum_key = AccumKey { z };
@@ -195,7 +198,7 @@ impl RevocationRegistryDefinitionWrapper {
             cred_def_id: CredentialDefinitionId::from(cred_def_id.as_str()),
             revoc_def_type: RegistryType::CL_ACCUM,
             tag,
-            value: serde_wasm_bindgen::from_value(value).unwrap(),
+            value: serde_wasm_bindgen::from_value(value.into()).unwrap(),
         }))
     }
 
@@ -218,8 +221,10 @@ impl RevocationRegistryDefinitionWrapper {
     }
 
     #[wasm_bindgen(js_name = asValue)]
-    pub fn as_value(&self) -> Result<JsValue> {
-        serde_wasm_bindgen::to_value(&*self.0).map_err(JsValue::from)
+    pub fn as_value(&self) -> Result<RevocationRegistryDefinitionDataJS> {
+        serde_wasm_bindgen::to_value(&*self.0)
+            .map(JsCast::unchecked_into)
+            .map_err(JsValue::from)
     }
 }
 
@@ -259,8 +264,10 @@ impl RevocationRegistryEntryWrapper {
     }
 
     #[wasm_bindgen(js_name = asValue)]
-    pub fn as_value(&self) -> Result<JsValue> {
-        serde_wasm_bindgen::to_value(&*self.0).map_err(JsValue::from)
+    pub fn as_value(&self) -> Result<RevocationRegistryEntryValueJS> {
+        serde_wasm_bindgen::to_value(&*self.0)
+            .map(JsCast::unchecked_into)
+            .map_err(JsValue::from)
     }
 
     #[wasm_bindgen(js_name = toString)]
@@ -281,8 +288,10 @@ pub struct RevocationRegistryStatusListWrapper(pub(crate) Rc<RevocationStatusLis
 #[wasm_bindgen(js_class = RevocationRegistryStatusList)]
 impl RevocationRegistryStatusListWrapper {
     #[wasm_bindgen(js_name = asValue)]
-    pub fn as_value(&self) -> Result<JsValue> {
-        serde_wasm_bindgen::to_value(&*self.0).map_err(JsValue::from)
+    pub fn as_value(&self) -> Result<RevocationStatusListDataJS> {
+        serde_wasm_bindgen::to_value(&*self.0)
+            .map(JsCast::unchecked_into)
+            .map_err(JsValue::from)
     }
 
     #[wasm_bindgen(js_name = toString)]

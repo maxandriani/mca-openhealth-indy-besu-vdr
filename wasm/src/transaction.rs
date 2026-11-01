@@ -6,7 +6,10 @@ use indy_besu_vdr::{SignatureData, Transaction, TransactionEndorsingData};
 use std::cell::RefCell;
 use wasm_bindgen::prelude::*;
 
-use crate::error::{JsResult, Result};
+use crate::{
+    error::{JsResult, Result},
+    types::SignatureDataJS,
+};
 
 #[wasm_bindgen(js_name = Transaction)]
 pub struct TransactionWrapper(pub(crate) RefCell<Transaction>);
@@ -24,8 +27,8 @@ impl TransactionWrapper {
     }
 
     #[wasm_bindgen(js_name = setSignature)]
-    pub fn set_signature(&mut self, signature_data: JsValue) -> Result<()> {
-        let signature_data: SignatureData = serde_wasm_bindgen::from_value(signature_data)?;
+    pub fn set_signature(&mut self, signature_data: SignatureDataJS) -> Result<()> {
+        let signature_data: SignatureData = serde_wasm_bindgen::from_value(signature_data.into())?;
         self.0.get_mut().set_signature(signature_data);
         Ok(())
     }
@@ -49,8 +52,8 @@ impl TransactionEndorsingDataWrapper {
     }
 
     #[wasm_bindgen(js_name = setSignature)]
-    pub fn set_signature(&mut self, signature_data: JsValue) -> Result<()> {
-        let signature_data: SignatureData = serde_wasm_bindgen::from_value(signature_data)?;
+    pub fn set_signature(&mut self, signature_data: SignatureDataJS) -> Result<()> {
+        let signature_data: SignatureData = serde_wasm_bindgen::from_value(signature_data.into())?;
         self.0.get_mut().set_signature(signature_data);
         Ok(())
     }

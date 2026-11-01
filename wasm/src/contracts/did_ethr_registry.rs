@@ -13,7 +13,12 @@ use crate::{
     error::{JsResult, Result},
     event_query::EventQueryWrapper,
     transaction::{TransactionEndorsingDataWrapper, TransactionWrapper},
+    types::{
+        DidAttributeChangedJS, DidDelegateChangedJS, DidDocAttributeJS, DidEventJS,
+        DidOwnerChangedJS, EventLogJS,
+    },
 };
+use wasm_bindgen::JsCast;
 
 #[wasm_bindgen(js_name = EthrDidRegistry)]
 pub struct EthrDidRegistry;
@@ -157,12 +162,12 @@ impl EthrDidRegistry {
         client: &LedgerClientWrapper,
         sender: &str,
         did: &str,
-        attribute: JsValue,
+        attribute: DidDocAttributeJS,
         validity: u64,
     ) -> Result<TransactionWrapper> {
         let sender = Address::from(sender);
         let did = DID::from(did);
-        let did_attribute: DidDocAttribute = serde_wasm_bindgen::from_value(attribute)?;
+        let did_attribute: DidDocAttribute = serde_wasm_bindgen::from_value(attribute.into())?;
         let validity = Validity::from(validity);
         did_ethr_registry::build_did_set_attribute_transaction(
             &client.0,
@@ -181,11 +186,11 @@ impl EthrDidRegistry {
     pub async fn build_did_set_attribute_endorsing_data(
         client: &LedgerClientWrapper,
         did: &str,
-        attribute: JsValue,
+        attribute: DidDocAttributeJS,
         validity: u64,
     ) -> Result<TransactionEndorsingDataWrapper> {
         let did = DID::from(did);
-        let did_attribute: DidDocAttribute = serde_wasm_bindgen::from_value(attribute)?;
+        let did_attribute: DidDocAttribute = serde_wasm_bindgen::from_value(attribute.into())?;
         let validity = Validity::from(validity);
         did_ethr_registry::build_did_set_attribute_endorsing_data(
             &client.0,
@@ -204,11 +209,11 @@ impl EthrDidRegistry {
         client: &LedgerClientWrapper,
         sender: &str,
         did: &str,
-        attribute: JsValue,
+        attribute: DidDocAttributeJS,
     ) -> Result<TransactionWrapper> {
         let sender = Address::from(sender);
         let did = DID::from(did);
-        let did_attribute: DidDocAttribute = serde_wasm_bindgen::from_value(attribute)?;
+        let did_attribute: DidDocAttribute = serde_wasm_bindgen::from_value(attribute.into())?;
         did_ethr_registry::build_did_revoke_attribute_transaction(
             &client.0,
             &sender,
@@ -225,10 +230,10 @@ impl EthrDidRegistry {
     pub async fn build_did_revoke_attribute_endorsing_data(
         client: &LedgerClientWrapper,
         did: &str,
-        attribute: JsValue,
+        attribute: DidDocAttributeJS,
     ) -> Result<TransactionEndorsingDataWrapper> {
         let did = DID::from(did);
-        let did_attribute: DidDocAttribute = serde_wasm_bindgen::from_value(attribute)?;
+        let did_attribute: DidDocAttribute = serde_wasm_bindgen::from_value(attribute.into())?;
         did_ethr_registry::build_did_revoke_attribute_endorsing_data(
             &client.0,
             &did,
@@ -315,44 +320,47 @@ impl EthrDidRegistry {
     #[wasm_bindgen(js_name = parseDidAttributeChangedEventResponse)]
     pub fn parse_did_attribute_changed_event_response(
         client: &LedgerClientWrapper,
-        log: JsValue,
-    ) -> Result<JsValue> {
-        let log: EventLog = serde_wasm_bindgen::from_value(log)?;
+        log: EventLogJS,
+    ) -> Result<DidAttributeChangedJS> {
+        let log: EventLog = serde_wasm_bindgen::from_value(log.into())?;
         let event = did_ethr_registry::parse_did_attribute_changed_event_response(&client.0, &log)
             .as_js()?;
         let result: JsValue = serde_wasm_bindgen::to_value(&event)?;
-        Ok(result)
+        Ok(result.unchecked_into())
     }
 
     #[wasm_bindgen(js_name = parseDidDelegateChangedEventResponse)]
     pub fn parse_did_delegate_changed_event_response(
         client: &LedgerClientWrapper,
-        log: JsValue,
-    ) -> Result<JsValue> {
-        let log: EventLog = serde_wasm_bindgen::from_value(log)?;
+        log: EventLogJS,
+    ) -> Result<DidDelegateChangedJS> {
+        let log: EventLog = serde_wasm_bindgen::from_value(log.into())?;
         let event = did_ethr_registry::parse_did_delegate_changed_event_response(&client.0, &log)
             .as_js()?;
         let result: JsValue = serde_wasm_bindgen::to_value(&event)?;
-        Ok(result)
+        Ok(result.unchecked_into())
     }
 
     #[wasm_bindgen(js_name = parseDidOwnerChangedEventResponse)]
     pub fn parse_did_owner_changed_event_response(
         client: &LedgerClientWrapper,
-        log: JsValue,
-    ) -> Result<JsValue> {
-        let log: EventLog = serde_wasm_bindgen::from_value(log)?;
+        log: EventLogJS,
+    ) -> Result<DidOwnerChangedJS> {
+        let log: EventLog = serde_wasm_bindgen::from_value(log.into())?;
         let event =
             did_ethr_registry::parse_did_owner_changed_event_response(&client.0, &log).as_js()?;
         let result: JsValue = serde_wasm_bindgen::to_value(&event)?;
-        Ok(result)
+        Ok(result.unchecked_into())
     }
 
     #[wasm_bindgen(js_name = parseDidEventResponse)]
-    pub fn parse_did_event_response(client: &LedgerClientWrapper, log: JsValue) -> Result<JsValue> {
-        let log: EventLog = serde_wasm_bindgen::from_value(log)?;
+    pub fn parse_did_event_response(
+        client: &LedgerClientWrapper,
+        log: EventLogJS,
+    ) -> Result<DidEventJS> {
+        let log: EventLog = serde_wasm_bindgen::from_value(log.into())?;
         let event = did_ethr_registry::parse_did_event_response(&client.0, &log).as_js()?;
         let result: JsValue = serde_wasm_bindgen::to_value(&event)?;
-        Ok(result)
+        Ok(result.unchecked_into())
     }
 }

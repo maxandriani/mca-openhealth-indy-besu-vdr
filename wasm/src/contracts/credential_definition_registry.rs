@@ -13,7 +13,11 @@ use crate::{
     client::LedgerClientWrapper,
     error::{JsResult, Result},
     transaction::{TransactionEndorsingDataWrapper, TransactionWrapper},
+    types::{
+        CredentialDefinitionDataJS, CredentialDefinitionRecordJS, CredentialDefinitionValueJS,
+    },
 };
+use wasm_bindgen::JsCast;
 
 #[wasm_bindgen(js_name = CredentialDefinitionRegistry)]
 pub struct CredentialDefinitionRegistry;
@@ -73,13 +77,13 @@ impl CredentialDefinitionRegistry {
     pub fn parse_resolve_credential_definition_result(
         client: &LedgerClientWrapper,
         bytes: Vec<u8>,
-    ) -> Result<JsValue> {
+    ) -> Result<CredentialDefinitionRecordJS> {
         let cred_def = credential_definition_registry::parse_resolve_credential_definition_result(
             &client.0, &bytes,
         )
         .as_js()?;
         let result: JsValue = serde_wasm_bindgen::to_value(&cred_def)?;
-        Ok(result)
+        Ok(result.unchecked_into())
     }
 
     #[wasm_bindgen(js_name = resolveCredentialDefinition)]
@@ -106,9 +110,10 @@ impl CredentialDefinitionWrapper {
         issuer_id: String,
         schema_id: String,
         tag: String,
-        value: JsValue,
+        value: CredentialDefinitionValueJS,
     ) -> CredentialDefinitionWrapper {
-        let value: serde_json::Value = serde_wasm_bindgen::from_value(value).unwrap_or_default();
+        let value: serde_json::Value =
+            serde_wasm_bindgen::from_value(value.into()).unwrap_or_default();
         CredentialDefinitionWrapper(Rc::new(CredentialDefinition {
             issuer_id: DID::from(issuer_id.as_str()),
             schema_id: SchemaId::from(schema_id.as_str()),
@@ -137,8 +142,10 @@ impl CredentialDefinitionWrapper {
     }
 
     #[wasm_bindgen(js_name = asValue)]
-    pub fn as_value(&self) -> Result<JsValue> {
-        serde_wasm_bindgen::to_value(&*self.0).map_err(JsValue::from)
+    pub fn as_value(&self) -> Result<CredentialDefinitionDataJS> {
+        serde_wasm_bindgen::to_value(&*self.0)
+            .map(JsCast::unchecked_into)
+            .map_err(JsValue::from)
     }
 }
 

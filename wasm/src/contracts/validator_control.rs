@@ -9,7 +9,9 @@ use crate::{
     client::LedgerClientWrapper,
     error::{JsResult, Result},
     transaction::TransactionWrapper,
+    types::ValidatorAddressesJS,
 };
+use wasm_bindgen::JsCast;
 
 #[wasm_bindgen(js_name = ValidatorControl)]
 pub struct ValidatorControl;
@@ -61,10 +63,10 @@ impl ValidatorControl {
     pub fn parse_get_validators_result(
         client: &LedgerClientWrapper,
         bytes: Vec<u8>,
-    ) -> Result<JsValue> {
+    ) -> Result<ValidatorAddressesJS> {
         let validators =
             validator_control::parse_get_validators_result(&client.0, &bytes).as_js()?;
         let result: JsValue = serde_wasm_bindgen::to_value(&validators)?;
-        Ok(result)
+        Ok(result.unchecked_into())
     }
 }

@@ -9,7 +9,9 @@ use crate::{
     client::LedgerClientWrapper,
     error::{JsResult, Result},
     transaction::{TransactionEndorsingDataWrapper, TransactionWrapper},
+    types::{DidDocumentJS, DidRecordJS},
 };
+use wasm_bindgen::JsCast;
 
 #[wasm_bindgen(js_name = IndyDidRegistry)]
 pub struct IndyDidRegistry;
@@ -21,9 +23,9 @@ impl IndyDidRegistry {
         client: &LedgerClientWrapper,
         from: &str,
         did: &str,
-        did_doc: JsValue,
+        did_doc: DidDocumentJS,
     ) -> Result<TransactionWrapper> {
-        let did_doc: DidDocument = serde_wasm_bindgen::from_value(did_doc)?;
+        let did_doc: DidDocument = serde_wasm_bindgen::from_value(did_doc.into())?;
         let address = Address::from(from);
         let did = DID::from(did);
         did_indy_registry::build_create_did_transaction(&client.0, &address, &did, &did_doc)
@@ -37,9 +39,9 @@ impl IndyDidRegistry {
     pub async fn build_create_did_endorsing_data(
         client: &LedgerClientWrapper,
         did: &str,
-        did_doc: JsValue,
+        did_doc: DidDocumentJS,
     ) -> Result<TransactionEndorsingDataWrapper> {
-        let did_doc: DidDocument = serde_wasm_bindgen::from_value(did_doc)?;
+        let did_doc: DidDocument = serde_wasm_bindgen::from_value(did_doc.into())?;
         let did = DID::from(did);
         did_indy_registry::build_create_did_endorsing_data(&client.0, &did, &did_doc)
             .await
@@ -53,11 +55,11 @@ impl IndyDidRegistry {
         client: &LedgerClientWrapper,
         from: &str,
         did: &str,
-        did_doc: JsValue,
+        did_doc: DidDocumentJS,
     ) -> Result<TransactionWrapper> {
         let from = Address::from(from);
         let did = DID::from(did);
-        let did_doc: DidDocument = serde_wasm_bindgen::from_value(did_doc)?;
+        let did_doc: DidDocument = serde_wasm_bindgen::from_value(did_doc.into())?;
         did_indy_registry::build_update_did_transaction(&client.0, &from, &did, &did_doc)
             .await
             .as_js()
@@ -69,9 +71,9 @@ impl IndyDidRegistry {
     pub async fn build_update_did_endorsing_data(
         client: &LedgerClientWrapper,
         did: &str,
-        did_doc: JsValue,
+        did_doc: DidDocumentJS,
     ) -> Result<TransactionEndorsingDataWrapper> {
-        let did_doc: DidDocument = serde_wasm_bindgen::from_value(did_doc)?;
+        let did_doc: DidDocument = serde_wasm_bindgen::from_value(did_doc.into())?;
         let did = DID::from(did);
         did_indy_registry::build_update_did_endorsing_data(&client.0, &did, &did_doc)
             .await
@@ -125,9 +127,9 @@ impl IndyDidRegistry {
     pub fn parse_resolve_did_result(
         client: &LedgerClientWrapper,
         bytes: Vec<u8>,
-    ) -> Result<JsValue> {
-        let did_doc = did_indy_registry::parse_resolve_did_result(&client.0, &bytes).as_js()?;
-        let result: JsValue = serde_wasm_bindgen::to_value(&did_doc)?;
-        Ok(result)
+    ) -> Result<DidRecordJS> {
+        let did_record = did_indy_registry::parse_resolve_did_result(&client.0, &bytes).as_js()?;
+        let result: JsValue = serde_wasm_bindgen::to_value(&did_record)?;
+        Ok(result.unchecked_into())
     }
 }
