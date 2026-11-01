@@ -181,17 +181,55 @@ pub mod test {
                 credential_definition::test::{
                     credential_definition, credential_definition_value, CREDENTIAL_DEFINITION_TAG,
                 },
-                schema::test::SCHEMA_ID,
+                schema::test::{SCHEMA_ID, SCHEMA_NAME, SCHEMA_VERSION},
                 schema_id::SchemaId,
             },
-            did::types::{did::DID, did_doc::test::TEST_ETHR_DID},
+            did::types::{
+                did::DID,
+                did_doc::test::{TEST_ETHR_DID, TEST_INDYBESU_DID, TEST_INDYBESU_DID_WITH_NETWORK},
+            },
         },
     };
     use rstest::rstest;
 
+    fn data_contains(data: &[u8], needle: &[u8]) -> bool {
+        data.windows(needle.len()).any(|window| window == needle)
+    }
+
     mod build_create_credential_definition_transaction {
         use super::*;
         use serde_json::Value;
+
+        // Use case: Credential Definition issued under a `did:indy:besu` DID.
+        //
+        // The `issuerId` string is parsed on-chain by `DidUtils.parseDid`
+        // (through `AnoncredsRegistry._validIssuer`), so the transaction must
+        // embed it in the contract-supported `did:indy:besu(:network)?:<id>` format.
+        #[async_std::test]
+        async fn build_create_credential_definition_transaction_with_indy_besu_issuer_test() {
+            let client = mock_client();
+            let issuer = DID::from(TEST_INDYBESU_DID_WITH_NETWORK);
+            let schema_id = SchemaId::build(&issuer, SCHEMA_NAME, SCHEMA_VERSION);
+            let cred_def =
+                credential_definition(&issuer, &schema_id, Some(CREDENTIAL_DEFINITION_TAG));
+            let transaction =
+                build_create_credential_definition_transaction(&client, &TEST_ACCOUNT, &cred_def)
+                    .await
+                    .unwrap();
+            // identity account address is extracted from the issuer DID
+            let identity = hex::decode("f0e2db6c8dc6c681bb5d6ad121a107f300e9b2b5").unwrap();
+            assert!(data_contains(&transaction.data, &identity));
+            // `issuerId` param is sent without network, parseable by on-chain `DidUtils`
+            assert!(data_contains(
+                &transaction.data,
+                TEST_INDYBESU_DID.as_bytes()
+            ));
+            // the credential definition object keeps the fully-qualified issuer DID
+            assert!(data_contains(
+                &transaction.data,
+                TEST_INDYBESU_DID_WITH_NETWORK.as_bytes()
+            ));
+        }
 
         #[async_std::test]
         async fn build_create_credential_definition_transaction_test() {

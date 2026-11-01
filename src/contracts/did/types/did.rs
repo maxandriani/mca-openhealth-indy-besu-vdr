@@ -9,19 +9,19 @@ use serde_derive::{Deserialize, Serialize};
 
 pub const DID_PREFIX: &str = "did";
 
-// Indy DID method (incl. Besu-based Indy2) and ethr DID method.
+// Indy-on-Besu DID method (`did:indy:besu`) and ethr DID method.
 //
-// Supported identifiers:
-// - Ethereum address: 20 bytes => 40 hex chars
-// - Ethereum public key (common encodings):
-//   - compressed: 33 bytes => 66 hex chars
-//   - uncompressed (no 0x04 prefix): 64 bytes => 128 hex chars
-//   - uncompressed (with 0x04 prefix): 65 bytes => 130 hex chars
+// Mirrors the on-chain `DidUtils.parseDid` implementation from `indy-besu-contracts`:
+// - methods: `indy:besu` and `ethr` only
+// - at most ONE optional network segment
+// - supported identifiers (`DidUtils.convertEthereumIdentifierToAddress`):
+//   - Ethereum address: 20 bytes => 40 hex chars
+//   - uncompressed public key (no 0x04 prefix): 64 bytes => 128 hex chars
+//   - uncompressed public key (with 0x04 prefix): 65 bytes => 130 hex chars
 //
 // Note: this regex validates syntax only; the library may still require an address
 // identifier in contexts where an on-chain account address is expected.
-const DID_SYNTAX: &str =
-    r"did:(?:indy:besu|indybesu|ethr):(?:[a-zA-Z0-9]+:)*0x(?:[a-fA-F0-9]{40}|[a-fA-F0-9]{66}|[a-fA-F0-9]{128}|[a-fA-F0-9]{130})";
+const DID_SYNTAX: &str = r"did:(?:indy:besu|ethr):(?:[a-zA-Z0-9]+:)?0x(?:[a-fA-F0-9]{40}|[a-fA-F0-9]{128}|[a-fA-F0-9]{130})";
 const PATH: &str = r"\/[^#?]*";
 const QUERY: &str = r"[?][^#]*";
 const FRAGMENT: &str = r"[#].*";
@@ -133,31 +133,18 @@ impl TryFrom<&DID> for ParsedDid {
             .ok_or(VdrError::ContractInvalidInputData)?;
         let method_specific: &[&str] = &parts[2..parts.len() - 1];
 
-        // Legacy: did:indybesu(:network)?:<id>
-        if method == "indybesu" {
-            let network = if method_specific.is_empty() {
-                None
-            } else {
-                Some(method_specific.join(":"))
-            };
-            return Ok(ParsedDid {
-                method: method.to_string(),
-                network,
-                identifier: identifier.to_string(),
-            });
-        }
-
-        // New: did:indy:besu(:network)?:<id>
+        // Indy-on-Besu: did:indy:besu(:network)?:<id>
         if method == "indy" {
             if method_specific.first().copied() != Some("besu") {
                 return Err(VdrError::ContractInvalidInputData);
             }
 
             let network_parts = &method_specific[1..];
-            let network = if network_parts.is_empty() {
-                None
-            } else {
-                Some(network_parts.join(":"))
+            // On-chain `DidUtils.parseDid` allows at most one network segment
+            let network = match network_parts {
+                [] => None,
+                [network] => Some(network.to_string()),
+                _ => return Err(VdrError::ContractInvalidInputData),
             };
 
             return Ok(ParsedDid {
@@ -167,18 +154,24 @@ impl TryFrom<&DID> for ParsedDid {
             });
         }
 
-        // Generic DID shape: did:<method>(:<network...>)?:<id>
-        let network = if method_specific.is_empty() {
-            None
-        } else {
-            Some(method_specific.join(":"))
-        };
+        // Ethr: did:ethr(:network)?:<id>
+        if method == "ethr" {
+            // On-chain `DidUtils.parseDid` allows at most one network segment
+            let network = match method_specific {
+                [] => None,
+                [network] => Some(network.to_string()),
+                _ => return Err(VdrError::ContractInvalidInputData),
+            };
 
-        Ok(ParsedDid {
-            method: method.to_string(),
-            network,
-            identifier: identifier.to_string(),
-        })
+            return Ok(ParsedDid {
+                method: method.to_string(),
+                network,
+                identifier: identifier.to_string(),
+            });
+        }
+
+        // This VDR only deals with `did:indy:besu` and `did:ethr` DIDs
+        Err(VdrError::ContractInvalidInputData)
     }
 }
 
@@ -187,10 +180,10 @@ mod test {
     use super::*;
 
     #[test]
-    fn parse_legacy_indybesu_did() {
-        let did = DID::from("did:indybesu:testnet:0xf0e2db6c8dc6c681bb5d6ad121a107f300e9b2b5");
+    fn parse_ethr_did() {
+        let did = DID::from("did:ethr:testnet:0xf0e2db6c8dc6c681bb5d6ad121a107f300e9b2b5");
         let parsed = ParsedDid::try_from(&did).unwrap();
-        assert_eq!(parsed.method, "indybesu");
+        assert_eq!(parsed.method, "ethr");
         assert_eq!(parsed.network.as_deref(), Some("testnet"));
         assert_eq!(
             parsed.identifier,
@@ -198,7 +191,140 @@ mod test {
         );
         assert_eq!(
             parsed.as_short_did().as_ref(),
-            "did:indybesu:0xf0e2db6c8dc6c681bb5d6ad121a107f300e9b2b5"
+            "did:ethr:0xf0e2db6c8dc6c681bb5d6ad121a107f300e9b2b5"
+        );
+    }
+
+    #[test]
+    fn parse_unsupported_method_fails() {
+        // Legacy `did:indybesu` is no longer supported
+        ParsedDid::try_from(&DID::from(
+            "did:indybesu:testnet:0xf0e2db6c8dc6c681bb5d6ad121a107f300e9b2b5",
+        ))
+        .unwrap_err();
+        ParsedDid::try_from(&DID::from(
+            "did:sov:0xf0e2db6c8dc6c681bb5d6ad121a107f300e9b2b5",
+        ))
+        .unwrap_err();
+    }
+
+    #[test]
+    fn build_new_indy_besu_did() {
+        assert_eq!(
+            DID::build(
+                "indy:besu",
+                None,
+                "0xf0e2db6c8dc6c681bb5d6ad121a107f300e9b2b5"
+            )
+            .as_ref(),
+            "did:indy:besu:0xf0e2db6c8dc6c681bb5d6ad121a107f300e9b2b5"
+        );
+        assert_eq!(
+            DID::build(
+                "indy:besu",
+                Some("testnet"),
+                "0xf0e2db6c8dc6c681bb5d6ad121a107f300e9b2b5"
+            )
+            .as_ref(),
+            "did:indy:besu:testnet:0xf0e2db6c8dc6c681bb5d6ad121a107f300e9b2b5"
+        );
+    }
+
+    #[test]
+    fn validate_did_formats() {
+        // New format, with and without network
+        DID::from("did:indy:besu:0xf0e2db6c8dc6c681bb5d6ad121a107f300e9b2b5")
+            .validate()
+            .unwrap();
+        DID::from("did:indy:besu:testnet:0xf0e2db6c8dc6c681bb5d6ad121a107f300e9b2b5")
+            .validate()
+            .unwrap();
+        // Legacy format is no longer accepted
+        DID::from("did:indybesu:0xf0e2db6c8dc6c681bb5d6ad121a107f300e9b2b5")
+            .validate()
+            .unwrap_err();
+        // Ethr method
+        DID::from("did:ethr:0xf0e2db6c8dc6c681bb5d6ad121a107f300e9b2b5")
+            .validate()
+            .unwrap();
+        // Unknown method or malformed identifier must be rejected
+        DID::from("did:unknown:0xf0e2db6c8dc6c681bb5d6ad121a107f300e9b2b5")
+            .validate()
+            .unwrap_err();
+        DID::from("did:indy:besu:123").validate().unwrap_err();
+        // `did:indy` without the `besu` sub-method is not served by this VDR
+        DID::from("did:indy:0xf0e2db6c8dc6c681bb5d6ad121a107f300e9b2b5")
+            .validate()
+            .unwrap_err();
+    }
+
+    // Mirrors on-chain `DidUtils.parseDid`: at most ONE network segment is allowed
+    #[test]
+    fn multiple_network_segments_are_rejected() {
+        DID::from("did:indy:besu:one:two:0xf0e2db6c8dc6c681bb5d6ad121a107f300e9b2b5")
+            .validate()
+            .unwrap_err();
+        ParsedDid::try_from(&DID::from(
+            "did:indy:besu:one:two:0xf0e2db6c8dc6c681bb5d6ad121a107f300e9b2b5",
+        ))
+        .unwrap_err();
+        DID::from("did:ethr:one:two:0xf0e2db6c8dc6c681bb5d6ad121a107f300e9b2b5")
+            .validate()
+            .unwrap_err();
+        ParsedDid::try_from(&DID::from(
+            "did:ethr:one:two:0xf0e2db6c8dc6c681bb5d6ad121a107f300e9b2b5",
+        ))
+        .unwrap_err();
+        // A nested DID used as identifier is also invalid
+        DID::from("did:indy:besu:did:ethr:testnet:0xf0e2db6c8dc6c681bb5d6ad121a107f300e9b2b5")
+            .validate()
+            .unwrap_err();
+    }
+
+    // Mirrors on-chain `DidUtils.convertEthereumIdentifierToAddress`:
+    // 20-byte addresses and 64/65-byte uncompressed public keys are supported
+    #[test]
+    fn public_key_identifiers() {
+        // 65-byte uncompressed public key (0x04 prefix) => 130 hex chars
+        DID::from("did:indy:besu:0x0479be667ef9dcbbac55a06295ce870b07029bfcdb2dce28d959f2815b16f81798483ada7726a3c4655da4fbfc0e1108a8fd17b448a68554199c47d08ffb10d4b8")
+            .validate()
+            .unwrap();
+        // 64-byte uncompressed public key (no prefix) => 128 hex chars
+        DID::from("did:indy:besu:0x79be667ef9dcbbac55a06295ce870b07029bfcdb2dce28d959f2815b16f81798483ada7726a3c4655da4fbfc0e1108a8fd17b448a68554199c47d08ffb10d4b8")
+            .validate()
+            .unwrap();
+        // 33-byte compressed public key is NOT supported by the contracts => rejected
+        DID::from(
+            "did:indy:besu:0x0279be667ef9dcbbac55a06295ce870b07029bfcdb2dce28d959f2815b16f81798",
+        )
+        .validate()
+        .unwrap_err();
+    }
+
+    #[test]
+    fn without_network_new_indy_besu_did() {
+        let did = DID::from("did:indy:besu:testnet:0xf0e2db6c8dc6c681bb5d6ad121a107f300e9b2b5");
+        assert_eq!(
+            did.without_network().unwrap().as_ref(),
+            "did:indy:besu:0xf0e2db6c8dc6c681bb5d6ad121a107f300e9b2b5"
+        );
+        // Already-short DID stays unchanged
+        let did = DID::from("did:indy:besu:0xf0e2db6c8dc6c681bb5d6ad121a107f300e9b2b5");
+        assert_eq!(
+            did.without_network().unwrap().as_ref(),
+            "did:indy:besu:0xf0e2db6c8dc6c681bb5d6ad121a107f300e9b2b5"
+        );
+    }
+
+    #[test]
+    fn parse_new_indy_besu_did_without_network() {
+        let did = DID::from("did:indy:besu:0xf0e2db6c8dc6c681bb5d6ad121a107f300e9b2b5");
+        let parsed = ParsedDid::try_from(&did).unwrap();
+        assert_eq!(parsed.method, "indy:besu");
+        assert_eq!(parsed.network, None);
+        assert_eq!(
+            parsed.identifier,
+            "0xf0e2db6c8dc6c681bb5d6ad121a107f300e9b2b5"
         );
     }
 

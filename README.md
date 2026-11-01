@@ -50,7 +50,7 @@ This VDR supports DID resolution and ledger operations for:
 Per the official Indy DID Method specification, the Indy2-on-Besu DID format is:
 
 ```
-did:indy:besu:(:network?):<ethereum-address|ethereum-public-key>
+did:indy:besu(:network)?:<ethereum-address|ethereum-public-key>
 ```
 
 Examples:
@@ -60,11 +60,7 @@ did:indy:besu:0xf0e2db6c8dc6c681bb5d6ad121a107f300e9b2b5
 did:indy:besu:testnet:0xf0e2db6c8dc6c681bb5d6ad121a107f300e9b2b5
 ```
 
-Legacy format (still accepted for backward compatibility in resolution flows):
-
-```
-did:indybesu(:network)?:<ethereum-address|ethereum-public-key>
-```
+The legacy `did:indybesu` format is not supported.
 
 See the spec: https://hyperledger-indy.github.io/indy-did-method/
 

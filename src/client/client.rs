@@ -345,7 +345,7 @@ pub mod test {
     };
     use once_cell::sync::Lazy;
     use serde::{Deserialize, Serialize};
-    use std::{env, fs};
+    use std::{fs, path::PathBuf};
 
     #[derive(Serialize, Deserialize)]
     #[serde(rename_all = "camelCase")]
@@ -396,10 +396,9 @@ pub mod test {
         Lazy::new(|| Address::from("0xf0e2db6c8dc6c681bb5d6ad121a107f300e9b2b5"));
 
     fn build_contract_path(contract_path: &str) -> String {
-        let mut cur_dir = env::current_dir().unwrap();
-        cur_dir.push(".."); // project root directory
-        cur_dir.push(contract_path);
-        fs::canonicalize(&cur_dir)
+        let mut path = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
+        path.push(contract_path);
+        fs::canonicalize(&path)
             .unwrap()
             .to_str()
             .unwrap()
@@ -407,8 +406,9 @@ pub mod test {
     }
 
     fn read_config() -> TestConfig {
-        let file =
-            fs::File::open("../network/config.json").expect("Unable to open besu config file");
+        let mut path = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
+        path.push("network/config.json");
+        let file = fs::File::open(&path).expect("Unable to open besu config file");
         serde_json::from_reader(file).expect("Unable to parse besu config file")
     }
 

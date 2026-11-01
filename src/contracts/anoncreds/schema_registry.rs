@@ -176,14 +176,49 @@ pub mod test {
             anoncreds::types::schema::test::{
                 schema, SCHEMA_ATTRIBUTES, SCHEMA_NAME, SCHEMA_VERSION,
             },
-            did::types::{did::DID, did_doc::test::TEST_ETHR_DID},
+            did::types::{
+                did::DID,
+                did_doc::test::{TEST_ETHR_DID, TEST_INDYBESU_DID, TEST_INDYBESU_DID_WITH_NETWORK},
+            },
         },
     };
+
+    fn data_contains(data: &[u8], needle: &[u8]) -> bool {
+        data.windows(needle.len()).any(|window| window == needle)
+    }
 
     mod build_create_schema_transaction {
         use super::*;
         use rstest::rstest;
         use std::collections::HashSet;
+
+        // Use case: Schema issued under a `did:indy:besu` DID.
+        //
+        // The `issuerId` string is parsed on-chain by `DidUtils.parseDid`
+        // (through `AnoncredsRegistry._validIssuer`), so the transaction must
+        // embed it in the contract-supported `did:indy:besu(:network)?:<id>` format.
+        #[async_std::test]
+        async fn build_create_schema_transaction_with_indy_besu_issuer_test() {
+            let client = mock_client();
+            let issuer = DID::from(TEST_INDYBESU_DID_WITH_NETWORK);
+            let schema = schema(&issuer, Some(SCHEMA_NAME));
+            let transaction = build_create_schema_transaction(&client, &TEST_ACCOUNT, &schema)
+                .await
+                .unwrap();
+            // identity account address is extracted from the issuer DID
+            let identity = hex::decode("f0e2db6c8dc6c681bb5d6ad121a107f300e9b2b5").unwrap();
+            assert!(data_contains(&transaction.data, &identity));
+            // `issuerId` param is sent without network, parseable by on-chain `DidUtils`
+            assert!(data_contains(
+                &transaction.data,
+                TEST_INDYBESU_DID.as_bytes()
+            ));
+            // the schema object itself keeps the fully-qualified issuer DID
+            assert!(data_contains(
+                &transaction.data,
+                TEST_INDYBESU_DID_WITH_NETWORK.as_bytes()
+            ));
+        }
 
         #[async_std::test]
         async fn build_create_schema_transaction_test() {

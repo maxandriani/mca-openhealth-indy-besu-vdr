@@ -85,8 +85,79 @@ impl TryFrom<ContractOutput> for Address {
 impl TryFrom<&DID> for Address {
     type Error = VdrError;
 
+    /// Extract the on-chain account address from a DID identifier.
+    ///
+    /// Mirrors `DidUtils.convertEthereumIdentifierToAddress` from `indy-besu-contracts`:
+    /// - 20-byte identifier: used as the address directly
+    /// - 64-byte uncompressed public key: `keccak256(key)[12..]`
+    /// - 65-byte uncompressed public key (`0x04` prefix): `keccak256(key[1..])[12..]`
     fn try_from(did: &DID) -> Result<Self, Self::Error> {
+        use sha3::Digest;
+
         let parsed_did = ParsedDid::try_from(did)?;
-        Ok(Address::from(parsed_did.identifier.as_str()))
+        let identifier = parsed_did.identifier.as_str();
+
+        let hex_part = identifier.strip_prefix(PREFIX).ok_or_else(|| {
+            VdrError::CommonInvalidData(format!("Invalid DID identifier: {}", identifier))
+        })?;
+        let bytes = hex::decode(hex_part).map_err(|_| {
+            VdrError::CommonInvalidData(format!("Invalid DID identifier: {}", identifier))
+        })?;
+
+        match bytes.len() {
+            20 => Ok(Address::from(identifier)),
+            64 => {
+                let hash = sha3::Keccak256::digest(&bytes);
+                Ok(Address::from(hex::encode(&hash[12..]).as_str()))
+            }
+            65 if bytes[0] == 0x04 => {
+                let hash = sha3::Keccak256::digest(&bytes[1..]);
+                Ok(Address::from(hex::encode(&hash[12..]).as_str()))
+            }
+            _ => Err(VdrError::CommonInvalidData(format!(
+                "Invalid DID identifier: {}",
+                identifier
+            ))),
+        }
+    }
+}
+
+#[cfg(test)]
+mod test {
+    use super::*;
+
+    const IDENTITY: &str = "0xf0e2db6c8dc6c681bb5d6ad121a107f300e9b2b5";
+    // Well-known secp256k1 test vector (private key = 1):
+    // uncompressed public key and its derived Ethereum address
+    const PUBLIC_KEY_NO_PREFIX: &str = "0x79be667ef9dcbbac55a06295ce870b07029bfcdb2dce28d959f2815b16f81798483ada7726a3c4655da4fbfc0e1108a8fd17b448a68554199c47d08ffb10d4b8";
+    const PUBLIC_KEY_WITH_PREFIX: &str = "0x0479be667ef9dcbbac55a06295ce870b07029bfcdb2dce28d959f2815b16f81798483ada7726a3c4655da4fbfc0e1108a8fd17b448a68554199c47d08ffb10d4b8";
+    const DERIVED_ADDRESS: &str = "0x7e5f4552091a69125d5dfcb7b8c2659029395bdf";
+
+    #[test]
+    fn address_from_did_with_address_identifier() {
+        let did = DID::from(format!("did:indy:besu:{}", IDENTITY).as_str());
+        assert_eq!(Address::try_from(&did).unwrap().as_ref(), IDENTITY);
+
+        let did = DID::from(format!("did:ethr:testnet:{}", IDENTITY).as_str());
+        assert_eq!(Address::try_from(&did).unwrap().as_ref(), IDENTITY);
+    }
+
+    // Mirrors on-chain `DidUtils.convertEthereumIdentifierToAddress`
+    #[test]
+    fn address_from_did_with_public_key_identifier() {
+        let did = DID::from(format!("did:indy:besu:{}", PUBLIC_KEY_NO_PREFIX).as_str());
+        assert_eq!(Address::try_from(&did).unwrap().as_ref(), DERIVED_ADDRESS);
+
+        let did = DID::from(format!("did:indy:besu:{}", PUBLIC_KEY_WITH_PREFIX).as_str());
+        assert_eq!(Address::try_from(&did).unwrap().as_ref(), DERIVED_ADDRESS);
+    }
+
+    #[test]
+    fn address_from_did_with_invalid_identifier_fails() {
+        // 33-byte compressed public key is not supported by the contracts
+        let did = DID::from(
+            "did:indy:besu:0x0279be667ef9dcbbac55a06295ce870b07029bfcdb2dce28d959f2815b16f81798",
+        );
+        Address::try_from(&did).unwrap_err();
     }
 }

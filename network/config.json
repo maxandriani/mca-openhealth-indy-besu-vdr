@@ -1,0 +1,46 @@
+{
+  "chainId": 1337,
+  "nodeAddress": "http://127.0.0.1:8545",
+  "contracts": {
+    "validatorControl": {
+      "specPath": "network/abis/ValidatorControl.json",
+      "address": "0x0000000000000000000000000000000000007777"
+    },
+    "accountControl": {
+      "specPath": "network/abis/AccountControl.json",
+      "address": "0x0000000000000000000000000000000000008888"
+    },
+    "roleControl": {
+      "specPath": "network/abis/RoleControl.json",
+      "address": "0x0000000000000000000000000000000000006666"
+    },
+    "upgradeControl": {
+      "specPath": "network/abis/UpgradeControl.json",
+      "address": "0x0000000000000000000000000000000000009999"
+    },
+    "ethereumDidRegistry": {
+      "specPath": "network/abis/EthereumExtDidRegistry.json",
+      "address": "0x0000000000000000000000000000000000018888"
+    },
+    "indyDidRegistry": {
+      "specPath": "network/abis/IndyDidRegistry.json",
+      "address": "0x0000000000000000000000000000000000003333"
+    },
+    "schemaRegistry": {
+      "specPath": "network/abis/SchemaRegistry.json",
+      "address": "0x0000000000000000000000000000000000005555"
+    },
+    "credDefRegistry": {
+      "specPath": "network/abis/CredentialDefinitionRegistry.json",
+      "address": "0x0000000000000000000000000000000000004444"
+    },
+    "legacyMappingRegistry": {
+      "specPath": "network/abis/LegacyMappingRegistry.json",
+      "address": "0x0000000000000000000000000000000000017777"
+    },
+    "revocationRegistry": {
+      "specPath": "network/abis/RevocationRegistry.json",
+      "address": "0x0000000000000000000000000000000000002222"
+    }
+  }
+}

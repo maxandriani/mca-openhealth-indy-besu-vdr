@@ -555,6 +555,8 @@ pub mod test {
 
     pub const TEST_IDENTITY: &str = "0xf0e2db6c8dc6c681bb5d6ad121a107f300e9b2b5";
     pub const TEST_INDYBESU_DID: &str = "did:indy:besu:0xf0e2db6c8dc6c681bb5d6ad121a107f300e9b2b5";
+    pub const TEST_INDYBESU_DID_WITH_NETWORK: &str =
+        "did:indy:besu:testnet:0xf0e2db6c8dc6c681bb5d6ad121a107f300e9b2b5";
     pub const TEST_ETHR_DID: &str = "did:ethr:testnet:0xf0e2db6c8dc6c681bb5d6ad121a107f300e9b2b5";
     pub const TEST_ETHR_DID_WITHOUT_NETWORK: &str =
         "did:ethr:0xf0e2db6c8dc6c681bb5d6ad121a107f300e9b2b5";
