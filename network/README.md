@@ -15,7 +15,7 @@ specifications used by the unit test suite (`cargo test`).
 When the contracts change, refresh the fixtures from the npm package:
 
 ```sh
-npm pack indy-besu-contracts
+npm pack @maxandriani/indy-besu-contracts
 tar xzf indy-besu-contracts-*.tgz
 # For each contract, keep only `contractName` and `abi`:
 python3 - <<'EOF'

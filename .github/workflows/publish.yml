@@ -69,12 +69,12 @@ jobs:
         working-directory: ./wasm
 
       - run: |
-          yq -i '.name = "@andriani/indy-besu-vdr-${{ matrix.target }}"' package.json
+          yq -i '.name = "@maxandriani/indy-besu-vdr-${{ matrix.target }}"' package.json
           yq -i '.repository.type = "git"' package.json
           yq -i '.repository.url = "${{ github.repositoryUrl }}"' package.json
           yq -i '.publishConfig.access = "public"' package.json
           yq -i '.license = "MIT"' package.json
-          yq -i '.author = "${{ github.actor }}"' package.json
+          yq -i '.author = "Max Andriani <maxandriani@gmail.com>"' package.json
         working-directory: ./publish/${{ matrix.target }}
 
       - run: npm version --allow-same-version --git-tag-version false ${{ github.ref_name }}
