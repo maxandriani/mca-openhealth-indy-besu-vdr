@@ -190,7 +190,7 @@ pub(crate) struct TransactionBuilder {
     contract: String,
     method: String,
     from: Option<Address>,
-    nonce: Option<[u64; 4]>,
+    nonce: Option<u64>,
     params: Vec<ContractParam>,
     type_: TransactionType,
 }
@@ -250,6 +250,15 @@ impl TransactionBuilder {
         self
     }
 
+    /// Set externally managed nonce to use for the transaction.
+    /// If not set, the nonce will be obtained from the ledger during the `build` step.
+    #[logfn(Trace)]
+    #[logfn_inputs(Trace)]
+    pub fn set_nonce(mut self, nonce: Option<u64>) -> TransactionBuilder {
+        self.nonce = nonce;
+        self
+    }
+
     #[logfn(Trace)]
     #[logfn_inputs(Trace)]
     pub async fn build(self, client: &LedgerClient) -> VdrResult<Transaction> {
@@ -277,7 +286,10 @@ impl TransactionBuilder {
                         "Transaction `sender` is not set".to_string(),
                     )
                 })?;
-                Some(client.get_transaction_count(from).await?)
+                match self.nonce {
+                    Some(nonce) => Some(nonce),
+                    None => Some(client.get_transaction_count(from).await?),
+                }
             }
             TransactionType::Read => None,
         };
@@ -532,6 +544,7 @@ pub mod test {
     #[cfg(test)]
     pub mod txn_builder_test {
         use super::*;
+        use crate::client::{client::test::mock_custom_client, MockClient};
         use rstest::rstest;
         use std::ops::Deref;
 
@@ -606,6 +619,63 @@ pub mod test {
                 Ok(txn) => assert_eq!(txn.type_, txn_type.unwrap()),
                 Err(err) => assert_eq!(err, expected_error),
             }
+        }
+
+        #[async_std::test]
+        async fn transaction_builder_sets_externally_managed_nonce() {
+            // mock client without expectations: the test fails if the nonce is requested from the ledger
+            let client = mock_custom_client(Box::new(MockClient::new()));
+
+            let transaction = TransactionBuilder::new()
+                .set_contract(VALIDATOR_CONTROL_NAME)
+                .set_method(ADD_VALIDATOR_METHOD)
+                .add_param(VALIDATOR_ADDRESS.deref())
+                .unwrap()
+                .set_type(TransactionType::Write)
+                .set_from(&TRUSTEE_ACCOUNT)
+                .set_nonce(Some(42))
+                .build(&client)
+                .await
+                .unwrap();
+
+            assert_eq!(Some(42), transaction.nonce);
+        }
+
+        #[async_std::test]
+        async fn transaction_builder_obtains_nonce_from_ledger_when_not_set() {
+            let client = mock_client();
+
+            let transaction = TransactionBuilder::new()
+                .set_contract(VALIDATOR_CONTROL_NAME)
+                .set_method(ADD_VALIDATOR_METHOD)
+                .add_param(VALIDATOR_ADDRESS.deref())
+                .unwrap()
+                .set_type(TransactionType::Write)
+                .set_from(&TRUSTEE_ACCOUNT)
+                .set_nonce(None)
+                .build(&client)
+                .await
+                .unwrap();
+
+            assert_eq!(Some(DEFAULT_NONCE), transaction.nonce);
+        }
+
+        #[async_std::test]
+        async fn transaction_builder_ignores_nonce_for_read_transactions() {
+            let client = mock_client();
+
+            let transaction = TransactionBuilder::new()
+                .set_contract(VALIDATOR_CONTROL_NAME)
+                .set_method(ADD_VALIDATOR_METHOD)
+                .add_param(VALIDATOR_ADDRESS.deref())
+                .unwrap()
+                .set_type(TransactionType::Read)
+                .set_nonce(Some(42))
+                .build(&client)
+                .await
+                .unwrap();
+
+            assert_eq!(None, transaction.nonce);
         }
     }
 

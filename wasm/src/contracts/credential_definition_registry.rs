@@ -29,6 +29,7 @@ impl CredentialDefinitionRegistry {
         client: &LedgerClientWrapper,
         from: &str,
         cred_def: &CredentialDefinitionWrapper,
+        nonce: Option<u64>,
     ) -> Result<TransactionWrapper> {
         let client = client.0.clone();
         let address = Address::from(from);
@@ -36,6 +37,7 @@ impl CredentialDefinitionRegistry {
             &client,
             &address,
             &cred_def.0,
+            nonce,
         )
         .await
         .as_js()

@@ -18,11 +18,13 @@ pub async fn build_add_validator_transaction(
     client: &LedgerClient,
     from: &str,
     validator_address: &str,
+    nonce: Option<u64>,
 ) -> VdrResult<Transaction> {
     validator_control::build_add_validator_transaction(
         &client.client,
         &Address::from(from),
         &Address::from(validator_address),
+        nonce,
     )
     .await
     .map(Transaction::from)
@@ -34,11 +36,13 @@ pub async fn build_remove_validator_transaction(
     client: &LedgerClient,
     from: &str,
     validator_address: &str,
+    nonce: Option<u64>,
 ) -> VdrResult<Transaction> {
     validator_control::build_remove_validator_transaction(
         &client.client,
         &Address::from(from),
         &Address::from(validator_address),
+        nonce,
     )
     .await
     .map(Transaction::from)

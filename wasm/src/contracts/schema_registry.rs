@@ -24,9 +24,10 @@ impl SchemaRegistry {
         client: &LedgerClientWrapper,
         from: &str,
         schema: &SchemaWrapper,
+        nonce: Option<u64>,
     ) -> Result<TransactionWrapper> {
         let address = Address::from(from);
-        schema_registry::build_create_schema_transaction(&client.0, &address, &schema.0)
+        schema_registry::build_create_schema_transaction(&client.0, &address, &schema.0, nonce)
             .await
             .as_js()
             .map(TransactionWrapper::from)

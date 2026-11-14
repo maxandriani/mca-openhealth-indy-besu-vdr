@@ -29,6 +29,7 @@ const METHOD_RESOLVE_SCHEMA: &str = "resolveSchema";
 /// - `client`: [LedgerClient] - client connected to the network where contract will be executed
 /// - `from`: [Address] - transaction sender account address
 /// - `schema`: [Schema] - object matching to the specification - `<https://hyperledger.github.io/anoncreds-spec/#term:schema>`
+/// - `nonce`: Option<u64> - optional transaction nonce managed externally. If not provided, the nonce will be obtained from the ledger
 ///
 /// # Returns
 ///   transaction: [Transaction] - prepared write transaction object to sign and submit
@@ -38,6 +39,7 @@ pub async fn build_create_schema_transaction(
     client: &LedgerClient,
     from: &Address,
     schema: &Schema,
+    nonce: Option<u64>,
 ) -> VdrResult<Transaction> {
     schema.validate()?;
     let identity = Address::try_from(&schema.issuer_id)?;
@@ -50,6 +52,7 @@ pub async fn build_create_schema_transaction(
         .add_param(schema)?
         .set_type(TransactionType::Write)
         .set_from(from)
+        .set_nonce(nonce)
         .build(client)
         .await
 }
@@ -202,9 +205,10 @@ pub mod test {
             let client = mock_client();
             let issuer = DID::from(TEST_INDYBESU_DID_WITH_NETWORK);
             let schema = schema(&issuer, Some(SCHEMA_NAME));
-            let transaction = build_create_schema_transaction(&client, &TEST_ACCOUNT, &schema)
-                .await
-                .unwrap();
+            let transaction =
+                build_create_schema_transaction(&client, &TEST_ACCOUNT, &schema, None)
+                    .await
+                    .unwrap();
             // identity account address is extracted from the issuer DID
             let identity = hex::decode("f0e2db6c8dc6c681bb5d6ad121a107f300e9b2b5").unwrap();
             assert!(data_contains(&transaction.data, &identity));
@@ -224,9 +228,10 @@ pub mod test {
         async fn build_create_schema_transaction_test() {
             let client = mock_client();
             let schema = schema(&DID::from(TEST_ETHR_DID), Some(SCHEMA_NAME));
-            let transaction = build_create_schema_transaction(&client, &TEST_ACCOUNT, &schema)
-                .await
-                .unwrap();
+            let transaction =
+                build_create_schema_transaction(&client, &TEST_ACCOUNT, &schema, None)
+                    .await
+                    .unwrap();
             let expected_transaction = Transaction {
                 type_: TransactionType::Write,
                 from: Some(TEST_ACCOUNT.clone()),
@@ -277,7 +282,7 @@ pub mod test {
             schema.version = version.to_string();
             schema.attr_names = attributes.clone();
 
-            let err = build_create_schema_transaction(&client, &TEST_ACCOUNT, &schema)
+            let err = build_create_schema_transaction(&client, &TEST_ACCOUNT, &schema, None)
                 .await
                 .unwrap_err();
 

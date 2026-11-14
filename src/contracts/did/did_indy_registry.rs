@@ -39,6 +39,7 @@ pub const INDYBESU_DID_METHOD: &str = "indy:besu";
 /// - `from`: [Address] - transaction sender account address
 /// - `did`: [DID] - DID to create.
 /// - `did_doc`: [DidDocument] - DID Document matching to the specification: `<https://www.w3.org/TR/did-core/>`
+/// - `nonce`: Option<u64> - optional transaction nonce managed externally. If not provided, the nonce will be obtained from the ledger
 ///
 /// # Returns
 ///   transaction: [Transaction] - prepared write transaction object to sign and submit
@@ -49,6 +50,7 @@ pub async fn build_create_did_transaction(
     from: &Address,
     did: &DID,
     did_doc: &DidDocument,
+    nonce: Option<u64>,
 ) -> VdrResult<Transaction> {
     did_doc.validate()?;
     TransactionBuilder::new()
@@ -58,6 +60,7 @@ pub async fn build_create_did_transaction(
         .add_param(did_doc)?
         .set_type(TransactionType::Write)
         .set_from(from)
+        .set_nonce(nonce)
         .build(client)
         .await
 }
@@ -96,6 +99,7 @@ pub async fn build_create_did_endorsing_data(
 /// - `from`: [Address] - transaction sender account address
 /// - `did`: [DID] - DID to update.
 /// - `did_doc`: [DidDocument] - DID Document matching to the specification: `<https://www.w3.org/TR/did-core/>`
+/// - `nonce`: Option<u64> - optional transaction nonce managed externally. If not provided, the nonce will be obtained from the ledger
 ///
 /// # Returns
 ///   transaction: [Transaction] - prepared write transaction object to sign and submit
@@ -106,6 +110,7 @@ pub async fn build_update_did_transaction(
     from: &Address,
     did: &DID,
     did_doc: &DidDocument,
+    nonce: Option<u64>,
 ) -> VdrResult<Transaction> {
     did_doc.validate()?;
     TransactionBuilder::new()
@@ -115,6 +120,7 @@ pub async fn build_update_did_transaction(
         .add_param(did_doc)?
         .set_type(TransactionType::Write)
         .set_from(from)
+        .set_nonce(nonce)
         .build(client)
         .await
 }
@@ -152,6 +158,7 @@ pub async fn build_update_did_endorsing_data(
 /// - `client`: [LedgerClient] - client connected to the network where contract will be executed
 /// - `from`: [Address] - transaction sender account address
 /// - `did`: [DID] - DID to deactivate.
+/// - `nonce`: Option<u64> - optional transaction nonce managed externally. If not provided, the nonce will be obtained from the ledger
 ///
 /// # Returns
 ///   transaction: [Transaction] - prepared write transaction object to sign and submit
@@ -161,6 +168,7 @@ pub async fn build_deactivate_did_transaction(
     client: &LedgerClient,
     from: &Address,
     did: &DID,
+    nonce: Option<u64>,
 ) -> VdrResult<Transaction> {
     TransactionBuilder::new()
         .set_contract(CONTRACT_NAME)
@@ -168,6 +176,7 @@ pub async fn build_deactivate_did_transaction(
         .add_param(&Address::try_from(did)?)?
         .set_type(TransactionType::Write)
         .set_from(from)
+        .set_nonce(nonce)
         .build(client)
         .await
 }
@@ -261,9 +270,10 @@ pub mod test {
             let client = mock_client();
             let did = DID::from(TEST_INDYBESU_DID);
             let did_doc = did_doc(TEST_IDENTITY);
-            let transaction = build_create_did_transaction(&client, &TEST_ACCOUNT, &did, &did_doc)
-                .await
-                .unwrap();
+            let transaction =
+                build_create_did_transaction(&client, &TEST_ACCOUNT, &did, &did_doc, None)
+                    .await
+                    .unwrap();
             let expected_transaction = Transaction {
                 type_: TransactionType::Write,
                 from: Some(TEST_ACCOUNT.clone()),

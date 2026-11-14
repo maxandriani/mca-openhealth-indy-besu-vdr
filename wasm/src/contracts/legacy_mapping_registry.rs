@@ -27,6 +27,7 @@ impl LegacyMappingRegistry {
         legacy_did: &str,
         legacy_verkey: &str,
         ed25519_signature: &[u8],
+        nonce: Option<u64>,
     ) -> Result<TransactionWrapper> {
         let from = Address::from(from);
         let did = DID::from(did);
@@ -40,6 +41,7 @@ impl LegacyMappingRegistry {
             &legacy_did,
             &legacy_verkey,
             &ed25519_signature,
+            nonce,
         )
         .await
         .as_js()
@@ -102,6 +104,7 @@ impl LegacyMappingRegistry {
         legacy_issuer_identifier: &str,
         legacy_identifier: &str,
         new_identifier: &str,
+        nonce: Option<u64>,
     ) -> Result<TransactionWrapper> {
         let from = Address::from(from);
         let did = DID::from(did);
@@ -115,6 +118,7 @@ impl LegacyMappingRegistry {
             &legacy_issuer_identifier,
             &legacy_identifier,
             &new_identifier,
+            nonce,
         )
         .await
         .as_js()

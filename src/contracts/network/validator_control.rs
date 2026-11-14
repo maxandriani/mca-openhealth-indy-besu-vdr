@@ -23,6 +23,7 @@ const METHOD_GET_VALIDATORS: &str = "getValidators";
 /// - `client`: [LedgerClient] - client connected to the network where contract will be executed
 /// - `from`: [Address] - transaction sender account address
 /// - `validator_address`: [Address] - validator address to be added
+/// - `nonce`: Option<u64> - optional transaction nonce managed externally. If not provided, the nonce will be obtained from the ledger
 ///
 /// # Returns
 /// Write transaction to sign and submit
@@ -32,6 +33,7 @@ pub async fn build_add_validator_transaction(
     client: &LedgerClient,
     from: &Address,
     validator_address: &Address,
+    nonce: Option<u64>,
 ) -> VdrResult<Transaction> {
     TransactionBuilder::new()
         .set_contract(CONTRACT_NAME)
@@ -39,6 +41,7 @@ pub async fn build_add_validator_transaction(
         .add_param(validator_address)?
         .set_type(TransactionType::Write)
         .set_from(from)
+        .set_nonce(nonce)
         .build(client)
         .await
 }
@@ -49,6 +52,7 @@ pub async fn build_add_validator_transaction(
 /// - `client`: [LedgerClient] - client connected to the network where contract will be executed
 /// - `from`: [Address] - transaction sender account address
 /// - `validator_address`: [Address] - validator address to be removed
+/// - `nonce`: Option<u64> - optional transaction nonce managed externally. If not provided, the nonce will be obtained from the ledger
 ///
 /// # Returns
 /// Write transaction to sign and submit
@@ -58,6 +62,7 @@ pub async fn build_remove_validator_transaction(
     client: &LedgerClient,
     from: &Address,
     validator_address: &Address,
+    nonce: Option<u64>,
 ) -> VdrResult<Transaction> {
     TransactionBuilder::new()
         .set_contract(CONTRACT_NAME)
@@ -65,6 +70,7 @@ pub async fn build_remove_validator_transaction(
         .add_param(validator_address)?
         .set_type(TransactionType::Write)
         .set_from(from)
+        .set_nonce(nonce)
         .build(client)
         .await
 }
@@ -138,10 +144,14 @@ pub mod test {
         #[async_std::test]
         async fn build_add_validator_transaction_test() {
             let client = mock_client();
-            let transaction =
-                build_add_validator_transaction(&client, &TRUSTEE_ACCOUNT, &VALIDATOR_ADDRESS)
-                    .await
-                    .unwrap();
+            let transaction = build_add_validator_transaction(
+                &client,
+                &TRUSTEE_ACCOUNT,
+                &VALIDATOR_ADDRESS,
+                None,
+            )
+            .await
+            .unwrap();
             let expected_data = [
                 77, 35, 140, 142, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 147, 145, 124, 173, 186, 206,
                 93, 252, 225, 50, 185, 145, 115, 44, 108, 218, 155, 204, 91, 138,
@@ -160,6 +170,22 @@ pub mod test {
 
             assert_eq!(expected_transaction, transaction);
         }
+
+        #[async_std::test]
+        async fn build_add_validator_transaction_with_external_nonce_test() {
+            let client = mock_client();
+            let external_nonce: u64 = 42;
+            let transaction = build_add_validator_transaction(
+                &client,
+                &TRUSTEE_ACCOUNT,
+                &VALIDATOR_ADDRESS,
+                Some(external_nonce),
+            )
+            .await
+            .unwrap();
+
+            assert_eq!(Some(external_nonce), transaction.nonce);
+        }
     }
 
     mod build_remove_validator_transaction {
@@ -168,10 +194,14 @@ pub mod test {
         #[async_std::test]
         async fn build_remove_validator_transaction_test() {
             let client = mock_client();
-            let transaction =
-                build_remove_validator_transaction(&client, &TRUSTEE_ACCOUNT, &VALIDATOR_ADDRESS)
-                    .await
-                    .unwrap();
+            let transaction = build_remove_validator_transaction(
+                &client,
+                &TRUSTEE_ACCOUNT,
+                &VALIDATOR_ADDRESS,
+                None,
+            )
+            .await
+            .unwrap();
             let expected_data = [
                 64, 161, 65, 255, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 147, 145, 124, 173, 186, 206,
                 93, 252, 225, 50, 185, 145, 115, 44, 108, 218, 155, 204, 91, 138,

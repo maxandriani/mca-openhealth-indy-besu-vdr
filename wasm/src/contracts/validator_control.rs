@@ -23,14 +23,20 @@ impl ValidatorControl {
         client: &LedgerClientWrapper,
         from: &str,
         validator_address: &str,
+        nonce: Option<u64>,
     ) -> Result<TransactionWrapper> {
         let from = Address::from(from);
         let validator_address = Address::from(validator_address);
-        validator_control::build_add_validator_transaction(&client.0, &from, &validator_address)
-            .await
-            .as_js()
-            .map(TransactionWrapper::from)
-            .map_err(JsValue::from)
+        validator_control::build_add_validator_transaction(
+            &client.0,
+            &from,
+            &validator_address,
+            nonce,
+        )
+        .await
+        .as_js()
+        .map(TransactionWrapper::from)
+        .map_err(JsValue::from)
     }
 
     #[wasm_bindgen(js_name = buildRemoveValidatorTransaction)]
@@ -38,14 +44,20 @@ impl ValidatorControl {
         client: &LedgerClientWrapper,
         from: &str,
         validator_address: &str,
+        nonce: Option<u64>,
     ) -> Result<TransactionWrapper> {
         let from = Address::from(from);
         let validator_address = Address::from(validator_address);
-        validator_control::build_remove_validator_transaction(&client.0, &from, &validator_address)
-            .await
-            .as_js()
-            .map(TransactionWrapper::from)
-            .map_err(JsValue::from)
+        validator_control::build_remove_validator_transaction(
+            &client.0,
+            &from,
+            &validator_address,
+            nonce,
+        )
+        .await
+        .as_js()
+        .map(TransactionWrapper::from)
+        .map_err(JsValue::from)
     }
 
     #[wasm_bindgen(js_name = buildGetValidatorsTransaction)]

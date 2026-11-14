@@ -12,7 +12,7 @@ use crate::{
     },
     VdrError,
 };
-use indy_besu_vdr::{ContractConfig as ContractConfig_, LedgerClient as LedgerClient_};
+use indy_besu_vdr::{Address, ContractConfig as ContractConfig_, LedgerClient as LedgerClient_};
 
 #[derive(uniffi::Object)]
 pub struct LedgerClient {
@@ -68,6 +68,13 @@ impl LedgerClient {
 
     pub async fn get_receipt(&self, hash: Vec<u8>) -> VdrResult<String> {
         self.client.get_receipt(&hash).await.map_err(VdrError::from)
+    }
+
+    pub async fn get_transaction_count(&self, address: &str) -> VdrResult<u64> {
+        self.client
+            .get_transaction_count(&Address::from(address))
+            .await
+            .map_err(VdrError::from)
     }
 
     pub fn network(&self) -> VdrResult<String> {

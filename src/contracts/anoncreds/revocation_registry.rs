@@ -48,6 +48,7 @@ const EVENT_REV_REG_ENTRY_CREATED: &str = "RevocationRegistryEntryCreated";
 /// - `client`: [LedgerClient] - client connected to the network where contract will be executed
 /// - `from`: [Address] - transaction sender account address
 /// - `revocation_registry_definition`: [RevocationRegistryDefinition] - object matching to the specification - `<https://hyperledger.github.io/anoncreds-spec/#term:revocation-registry-definition>`
+/// - `nonce`: Option<u64> - optional transaction nonce managed externally. If not provided, the nonce will be obtained from the ledger
 ///
 /// # Returns
 ///   transaction: [Transaction] - prepared write transaction object to sign and submit
@@ -57,6 +58,7 @@ pub async fn build_create_revocation_registry_definition_transaction(
     client: &LedgerClient,
     from: &Address,
     revocation_registry_definition: &RevocationRegistryDefinition,
+    nonce: Option<u64>,
 ) -> VdrResult<Transaction> {
     revocation_registry_definition.validate()?;
     let identity = Address::try_from(&revocation_registry_definition.issuer_id)?;
@@ -75,6 +77,7 @@ pub async fn build_create_revocation_registry_definition_transaction(
         .add_param(revocation_registry_definition)?
         .set_type(TransactionType::Write)
         .set_from(from)
+        .set_nonce(nonce)
         .build(client)
         .await
 }
@@ -85,6 +88,7 @@ pub async fn build_create_revocation_registry_definition_transaction(
 /// - `client`: [LedgerClient] - client connected to the network where contract will be executed
 /// - `from`: [Address] - transaction sender account address
 /// - `revocation_registry_entry`: [RevocationRegistryEntry] - object matching to the specification - `<https://hyperledger.github.io/anoncreds-spec/#term:revocation-registry-entries>`
+/// - `nonce`: Option<u64> - optional transaction nonce managed externally. If not provided, the nonce will be obtained from the ledger
 ///
 /// # Returns
 ///   transaction: [Transaction] - prepared write transaction object to sign and submit
@@ -94,6 +98,7 @@ pub async fn build_create_revocation_registry_entry_transaction(
     client: &LedgerClient,
     from: &Address,
     revocation_registry_entry: &RevocationRegistryEntry,
+    nonce: Option<u64>,
 ) -> VdrResult<Transaction> {
     // Resolve latest status list do ledger
     let status_list = match resolve_revocation_registry_status_list(
@@ -117,6 +122,7 @@ pub async fn build_create_revocation_registry_entry_transaction(
         from,
         revocation_registry_entry,
         status_list,
+        nonce,
     )
     .await
 }
@@ -127,6 +133,7 @@ async fn build_create_revocation_registry_entry_transaction_internal(
     from: &Address,
     revocation_registry_entry: &RevocationRegistryEntry,
     status_list: Option<RevocationStatusList>,
+    nonce: Option<u64>,
 ) -> VdrResult<Transaction> {
     // 1. Local validation
     revocation_registry_entry.validate_with_status_list(&status_list)?;
@@ -142,6 +149,7 @@ async fn build_create_revocation_registry_entry_transaction_internal(
         .add_param(revocation_registry_entry)?
         .set_type(TransactionType::Write)
         .set_from(from)
+        .set_nonce(nonce)
         .build(client)
         .await
 }
@@ -852,6 +860,7 @@ pub mod test {
                 &client,
                 &TEST_ACCOUNT,
                 &rev_reg_def,
+                None,
             )
             .await
             .unwrap();
@@ -938,6 +947,7 @@ pub mod test {
                 &TEST_ACCOUNT,
                 &rev_reg_entry,
                 Some(fake_status_list()),
+                None,
             )
             .await
             .unwrap();
@@ -1009,6 +1019,7 @@ pub mod test {
                 &client,
                 &TRUSTEE_ACCOUNT,
                 &rev_reg_def,
+                None,
             )
             .await
             .unwrap_err();

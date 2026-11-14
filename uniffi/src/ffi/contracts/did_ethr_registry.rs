@@ -23,12 +23,14 @@ pub async fn build_did_change_owner_transaction(
     from: &str,
     did: &str,
     new_owner: &str,
+    nonce: Option<u64>,
 ) -> VdrResult<Transaction> {
     did_ethr_registry::build_did_change_owner_transaction(
         &client.client,
         &Address::from(from),
         &DID::from(did),
         &Address::from(new_owner),
+        nonce,
     )
     .await
     .map(Transaction::from)
@@ -59,6 +61,7 @@ pub async fn build_did_add_delegate_transaction(
     delegate_type: &str,
     delegate: &str,
     validity: u64,
+    nonce: Option<u64>,
 ) -> VdrResult<Transaction> {
     did_ethr_registry::build_did_add_delegate_transaction(
         &client.client,
@@ -67,6 +70,7 @@ pub async fn build_did_add_delegate_transaction(
         &DelegateType::try_from(delegate_type)?,
         &Address::from(delegate),
         &Validity::from(validity),
+        nonce,
     )
     .await
     .map(Transaction::from)
@@ -100,6 +104,7 @@ pub async fn build_did_revoke_delegate_transaction(
     did: &str,
     delegate_type: &str,
     delegate: &str,
+    nonce: Option<u64>,
 ) -> VdrResult<Transaction> {
     did_ethr_registry::build_did_revoke_delegate_transaction(
         &client.client,
@@ -107,6 +112,7 @@ pub async fn build_did_revoke_delegate_transaction(
         &DID::from(did),
         &DelegateType::try_from(delegate_type)?,
         &Address::from(delegate),
+        nonce,
     )
     .await
     .map(Transaction::from)
@@ -138,6 +144,7 @@ pub async fn build_did_set_attribute_transaction(
     did: &str,
     attribute: &str,
     validity: u64,
+    nonce: Option<u64>,
 ) -> VdrResult<Transaction> {
     let attribute: DidDocAttribute =
         serde_json::from_str(attribute).map_err(|err| VdrError::CommonInvalidData {
@@ -150,6 +157,7 @@ pub async fn build_did_set_attribute_transaction(
         &DID::from(did),
         &attribute,
         &Validity::from(validity),
+        nonce,
     )
     .await
     .map(Transaction::from)
@@ -185,6 +193,7 @@ pub async fn build_did_revoke_attribute_transaction(
     from: &str,
     did: &str,
     attribute: &str,
+    nonce: Option<u64>,
 ) -> VdrResult<Transaction> {
     let attribute: DidDocAttribute =
         serde_json::from_str(attribute).map_err(|err| VdrError::CommonInvalidData {
@@ -196,6 +205,7 @@ pub async fn build_did_revoke_attribute_transaction(
         &Address::from(from),
         &DID::from(did),
         &attribute,
+        nonce,
     )
     .await
     .map(Transaction::from)

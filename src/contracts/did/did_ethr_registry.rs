@@ -48,6 +48,7 @@ pub const ETHR_DID_METHOD: &str = "ethr";
 ///  - `sender`: [Address] - sender account address (Must be DID owner)
 ///  - `did`: [DID] - DID to change ownership
 ///  - `new_owner`: [Address] - account address of new owner
+///  - `nonce`: Option<u64> - optional transaction nonce managed externally. If not provided, the nonce will be obtained from the ledger
 ///
 /// #Returns
 ///   transaction: [Transaction] - prepared write transaction object to sign and submit
@@ -58,6 +59,7 @@ pub async fn build_did_change_owner_transaction(
     sender: &Address,
     did: &DID,
     new_owner: &Address,
+    nonce: Option<u64>,
 ) -> VdrResult<Transaction> {
     let identity = Address::try_from(did)?;
     TransactionBuilder::new()
@@ -67,6 +69,7 @@ pub async fn build_did_change_owner_transaction(
         .add_param(new_owner)?
         .set_type(TransactionType::Write)
         .set_from(sender)
+        .set_nonce(nonce)
         .build(client)
         .await
 }
@@ -110,6 +113,7 @@ pub async fn build_did_change_owner_endorsing_data(
 ///  - `delegate_type`: [DelegateType] - type of delegation (`veriKey` or `sigAuth`)
 ///  - `delegate`: [Address] - account address of delegate
 ///  - `validity`: [Validity] - delegate validity time
+///  - `nonce`: Option<u64> - optional transaction nonce managed externally. If not provided, the nonce will be obtained from the ledger
 ///
 /// #Returns
 ///   transaction: [Transaction] - prepared write transaction object to sign and submit
@@ -122,6 +126,7 @@ pub async fn build_did_add_delegate_transaction(
     delegate_type: &DelegateType,
     delegate: &Address,
     validity: &Validity,
+    nonce: Option<u64>,
 ) -> VdrResult<Transaction> {
     let identity = Address::try_from(did)?;
     TransactionBuilder::new()
@@ -133,6 +138,7 @@ pub async fn build_did_add_delegate_transaction(
         .add_param(validity)?
         .set_type(TransactionType::Write)
         .set_from(sender)
+        .set_nonce(nonce)
         .build(client)
         .await
 }
@@ -182,6 +188,7 @@ pub async fn build_did_add_delegate_endorsing_data(
 ///  - `did`: [DID] - DID to revoke a delegate
 ///  - `delegate_type`: [DelegateType] - type of delegation (`veriKey` or `sigAuth`)
 ///  - `delegate`: [Address] - account address of delegate
+///  - `nonce`: Option<u64> - optional transaction nonce managed externally. If not provided, the nonce will be obtained from the ledger
 ///
 /// #Returns
 ///   transaction: [Transaction] - prepared write transaction object to sign and submit
@@ -193,6 +200,7 @@ pub async fn build_did_revoke_delegate_transaction(
     did: &DID,
     delegate_type: &DelegateType,
     delegate: &Address,
+    nonce: Option<u64>,
 ) -> VdrResult<Transaction> {
     let identity = Address::try_from(did)?;
     TransactionBuilder::new()
@@ -203,6 +211,7 @@ pub async fn build_did_revoke_delegate_transaction(
         .add_param(delegate)?
         .set_type(TransactionType::Write)
         .set_from(sender)
+        .set_nonce(nonce)
         .build(client)
         .await
 }
@@ -249,6 +258,7 @@ pub async fn build_did_revoke_delegate_endorsing_data(
 ///  - `did`: [DID] - DID to add an attribute
 ///  - `attribute`: [DidDocAttribute] - attribute to add
 ///  - `validity`: [Validity] - attribute validity time
+///  - `nonce`: Option<u64> - optional transaction nonce managed externally. If not provided, the nonce will be obtained from the ledger
 ///
 /// #Returns
 ///   transaction: [Transaction] - prepared write transaction object to sign and submit
@@ -260,6 +270,7 @@ pub async fn build_did_set_attribute_transaction(
     did: &DID,
     attribute: &DidDocAttribute,
     validity: &Validity,
+    nonce: Option<u64>,
 ) -> VdrResult<Transaction> {
     let identity = Address::try_from(did)?;
     TransactionBuilder::new()
@@ -271,6 +282,7 @@ pub async fn build_did_set_attribute_transaction(
         .add_param(validity)?
         .set_type(TransactionType::Write)
         .set_from(sender)
+        .set_nonce(nonce)
         .build(client)
         .await
 }
@@ -320,6 +332,7 @@ pub async fn build_did_set_attribute_endorsing_data(
 ///  - `sender`: [Address] - sender account address (Must be DID owner)
 ///  - `did`: [DID] - DID to revoke an attribute
 ///  - `attribute`: [DidDocAttribute] - attribute to revoke
+///  - `nonce`: Option<u64> - optional transaction nonce managed externally. If not provided, the nonce will be obtained from the ledger
 ///
 /// #Returns
 ///   transaction: [Transaction] - prepared write transaction object to sign and submit
@@ -330,6 +343,7 @@ pub async fn build_did_revoke_attribute_transaction(
     sender: &Address,
     did: &DID,
     attribute: &DidDocAttribute,
+    nonce: Option<u64>,
 ) -> VdrResult<Transaction> {
     let identity = Address::try_from(did)?;
     TransactionBuilder::new()
@@ -340,6 +354,7 @@ pub async fn build_did_revoke_attribute_transaction(
         .add_param(&attribute.value()?)?
         .set_type(TransactionType::Write)
         .set_from(sender)
+        .set_nonce(nonce)
         .build(client)
         .await
 }
@@ -711,6 +726,7 @@ pub mod test {
                 &TEST_ACCOUNT,
                 &did(),
                 &TRUSTEE_ACCOUNT,
+                None,
             )
             .await
             .unwrap();
@@ -746,6 +762,7 @@ pub mod test {
                 &DelegateType::VeriKey,
                 &TRUSTEE_ACCOUNT,
                 &validity(),
+                None,
             )
             .await
             .unwrap();
@@ -783,6 +800,7 @@ pub mod test {
                 &did(),
                 &DelegateType::VeriKey,
                 &TRUSTEE_ACCOUNT,
+                None,
             )
             .await
             .unwrap();
@@ -818,6 +836,7 @@ pub mod test {
                 &did(),
                 &service(),
                 &validity(),
+                None,
             )
             .await
             .unwrap();
@@ -853,6 +872,7 @@ pub mod test {
                 &did(),
                 &public_key(),
                 &validity(),
+                None,
             )
             .await
             .unwrap();
@@ -887,10 +907,15 @@ pub mod test {
         #[async_std::test]
         async fn build_did_revoke_attribute_transaction_test() {
             let client = mock_client();
-            let transaction =
-                build_did_revoke_attribute_transaction(&client, &TEST_ACCOUNT, &did(), &service())
-                    .await
-                    .unwrap();
+            let transaction = build_did_revoke_attribute_transaction(
+                &client,
+                &TEST_ACCOUNT,
+                &did(),
+                &service(),
+                None,
+            )
+            .await
+            .unwrap();
             let expected_transaction = Transaction {
                 type_: TransactionType::Write,
                 from: Some(TEST_ACCOUNT.clone()),

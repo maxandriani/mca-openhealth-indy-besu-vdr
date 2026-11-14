@@ -15,12 +15,14 @@ pub async fn build_assign_role_transaction(
     from: &str,
     role: u8,
     account: &str,
+    nonce: Option<u64>,
 ) -> VdrResult<Transaction> {
     role_control::build_assign_role_transaction(
         &client.client,
         &Address::from(from),
         &Role::try_from(role)?,
         &Address::from(account),
+        nonce,
     )
     .await
     .map(Transaction::from)
@@ -33,12 +35,14 @@ pub async fn build_revoke_role_transaction(
     from: &str,
     role: u8,
     account: &str,
+    nonce: Option<u64>,
 ) -> VdrResult<Transaction> {
     role_control::build_revoke_role_transaction(
         &client.client,
         &Address::from(from),
         &Role::try_from(role)?,
         &Address::from(account),
+        nonce,
     )
     .await
     .map(Transaction::from)

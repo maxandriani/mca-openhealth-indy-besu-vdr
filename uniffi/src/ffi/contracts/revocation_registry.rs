@@ -25,11 +25,13 @@ pub async fn build_create_revocation_registry_definition_transaction(
     client: &LedgerClient,
     from: &str,
     rev_reg_def: &RevocationRegistryDefinition,
+    nonce: Option<u64>,
 ) -> VdrResult<Transaction> {
     revocation_registry::build_create_revocation_registry_definition_transaction(
         &client.client,
         &Address::from(from),
         &RevocationRegistryDefinition_::from(rev_reg_def),
+        nonce,
     )
     .await
     .map(Transaction::from)
@@ -158,11 +160,13 @@ pub async fn build_create_revocation_registry_entry_transaction(
     client: &LedgerClient,
     from: &str,
     rev_reg_entry: &RevocationRegistryEntry,
+    nonce: Option<u64>,
 ) -> VdrResult<Transaction> {
     revocation_registry::build_create_revocation_registry_entry_transaction(
         &client.client,
         &Address::from(from),
         &RevocationRegistryEntry_::from(rev_reg_entry),
+        nonce,
     )
     .await
     .map(Transaction::from)

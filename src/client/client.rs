@@ -164,7 +164,7 @@ impl LedgerClient {
     ///  count: [u64] - number of transaction sent by the given account
     #[logfn(Info)]
     #[logfn_inputs(Debug)]
-    pub(crate) async fn get_transaction_count(&self, address: &Address) -> VdrResult<u64> {
+    pub async fn get_transaction_count(&self, address: &Address) -> VdrResult<u64> {
         self.client.get_transaction_count(address).await
     }
 
@@ -530,6 +530,23 @@ pub mod test {
         #[test]
         fn create_client_test() {
             client();
+        }
+
+        #[async_std::test]
+        async fn get_transaction_count_test() {
+            let mut mock_client = MockClient::new();
+            mock_client
+                .expect_get_transaction_count()
+                .with(eq(TRUSTEE_ACCOUNT.clone()))
+                .returning(|_| Ok(42));
+            let client = mock_custom_client(Box::new(mock_client));
+
+            let count = client
+                .get_transaction_count(&TRUSTEE_ACCOUNT)
+                .await
+                .unwrap();
+
+            assert_eq!(42, count);
         }
 
         #[test]

@@ -14,6 +14,7 @@ use log_derive::{logfn, logfn_inputs};
 /// - `client` client connected to the network where contract will be executed
 /// - `from` transaction sender account address
 /// - `endorsing_data` prepared transaction endorsing data.
+/// - `nonce` optional transaction nonce managed externally. If not provided, the nonce will be obtained from the ledger
 ///
 /// # Returns
 /// Write transaction to sign and submit
@@ -23,6 +24,7 @@ pub async fn build_endorsement_transaction(
     client: &LedgerClient,
     from: &Address,
     endorsing_data: &TransactionEndorsingData,
+    nonce: Option<u64>,
 ) -> VdrResult<Transaction> {
     let signature = endorsing_data
         .signature
@@ -42,6 +44,7 @@ pub async fn build_endorsement_transaction(
         .add_contract_params(endorsing_data.params.as_slice())?
         .set_type(TransactionType::Write)
         .set_from(from)
+        .set_nonce(nonce)
         .build(client)
         .await
 }

@@ -23,6 +23,7 @@ const METHOD_GET_ROLE: &str = "getRole";
 /// - `from`: [Address] - transaction sender account address
 /// - `role`: [Role] - role to assign
 /// - `account`: [Address] - assignee account
+/// - `nonce`: Option<u64> - optional transaction nonce managed externally. If not provided, the nonce will be obtained from the ledger
 ///
 /// # Returns
 ///   transaction: [Transaction] - prepared write transaction object to sign and submit
@@ -33,6 +34,7 @@ pub async fn build_assign_role_transaction(
     from: &Address,
     role: &Role,
     account: &Address,
+    nonce: Option<u64>,
 ) -> VdrResult<Transaction> {
     TransactionBuilder::new()
         .set_contract(CONTRACT_NAME)
@@ -41,6 +43,7 @@ pub async fn build_assign_role_transaction(
         .add_param(account)?
         .set_type(TransactionType::Write)
         .set_from(from)
+        .set_nonce(nonce)
         .build(client)
         .await
 }
@@ -52,6 +55,7 @@ pub async fn build_assign_role_transaction(
 /// - `from`: [Address] - transaction sender account address
 /// - `role`: [Role] - role to assign
 /// - `account`: [Address] - revoke account
+/// - `nonce`: Option<u64> - optional transaction nonce managed externally. If not provided, the nonce will be obtained from the ledger
 ///
 /// # Returns
 ///   transaction: [Transaction] - prepared write transaction object to sign and submit
@@ -62,6 +66,7 @@ pub async fn build_revoke_role_transaction(
     from: &Address,
     role: &Role,
     account: &Address,
+    nonce: Option<u64>,
 ) -> VdrResult<Transaction> {
     TransactionBuilder::new()
         .set_contract(CONTRACT_NAME)
@@ -70,6 +75,7 @@ pub async fn build_revoke_role_transaction(
         .add_param(account)?
         .set_type(TransactionType::Write)
         .set_from(from)
+        .set_nonce(nonce)
         .build(client)
         .await
 }
@@ -184,6 +190,7 @@ pub mod test {
                 &TRUSTEE_ACCOUNT,
                 &Role::Trustee,
                 &TEST_ACCOUNT,
+                None,
             )
             .await
             .unwrap();
@@ -220,6 +227,7 @@ pub mod test {
                 &TRUSTEE_ACCOUNT,
                 &Role::Trustee,
                 &TEST_ACCOUNT,
+                None,
             )
             .await
             .unwrap();

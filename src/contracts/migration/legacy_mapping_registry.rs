@@ -37,6 +37,7 @@ const METHOD_RESOURCE_MAPPING: &str = "resourceMapping";
 /// - `legacy_identifier`: [LegacyDid] - identifier of legacy sov/indy DID
 /// - `legacy_verkey`: [LegacyVerkey] - Ed25519 verification key of the legacy DID identifier.
 /// - `ed25519_signature`: [Ed25519Signature] - ED25519 signature to prove key possession.
+/// - `nonce`: Option<u64> - optional transaction nonce managed externally. If not provided, the nonce will be obtained from the ledger
 ///
 /// # Returns
 ///   transaction: [Transaction] - prepared write transaction object to sign and submit
@@ -49,6 +50,7 @@ pub async fn build_create_did_mapping_transaction(
     legacy_identifier: &LegacyDid,
     legacy_verkey: &LegacyVerkey,
     ed25519_signature: &Ed25519Signature,
+    nonce: Option<u64>,
 ) -> VdrResult<Transaction> {
     let identity = Address::try_from(did)?;
     TransactionBuilder::new()
@@ -61,6 +63,7 @@ pub async fn build_create_did_mapping_transaction(
         .add_param(ed25519_signature)?
         .set_type(TransactionType::Write)
         .set_from(from)
+        .set_nonce(nonce)
         .build(client)
         .await
 }
@@ -151,6 +154,7 @@ pub fn parse_did_mapping_result(client: &LedgerClient, bytes: &[u8]) -> VdrResul
 /// - `legacy_issuer_identifier`: [LegacyDid] - identifier of legacy sov/indy DID
 /// - `legacy_identifier`: [ResourceIdentifier] - legacy identifier.
 /// - `new_identifier`: [ResourceIdentifier] - new identifier.
+/// - `nonce`: Option<u64> - optional transaction nonce managed externally. If not provided, the nonce will be obtained from the ledger
 ///
 /// # Returns
 ///   transaction: [Transaction] - prepared write transaction object to sign and submit
@@ -163,6 +167,7 @@ pub async fn build_create_resource_mapping_transaction(
     legacy_issuer_identifier: &LegacyDid,
     legacy_identifier: &ResourceIdentifier,
     new_identifier: &ResourceIdentifier,
+    nonce: Option<u64>,
 ) -> VdrResult<Transaction> {
     let identity = Address::try_from(did)?;
     TransactionBuilder::new()
@@ -174,6 +179,7 @@ pub async fn build_create_resource_mapping_transaction(
         .add_param(new_identifier)?
         .set_type(TransactionType::Write)
         .set_from(from)
+        .set_nonce(nonce)
         .build(client)
         .await
 }
@@ -283,6 +289,7 @@ pub mod test {
                 &LegacyDid::from(LEGACY_DID),
                 &LegacyVerkey::from(LEGACY_VERKEY),
                 &Ed25519Signature::from(LEGACY_SIGNATURE.as_slice()),
+                None,
             )
             .await
             .unwrap();
@@ -362,6 +369,7 @@ pub mod test {
                 &LegacyDid::from(LEGACY_DID),
                 &ResourceIdentifier::from(LEGACY_SCHEMA_ID),
                 &ResourceIdentifier::from(NEW_SCHEMA_ID),
+                None,
             )
             .await
             .unwrap();

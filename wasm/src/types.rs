@@ -334,6 +334,9 @@ extern "C" {
     #[wasm_bindgen(typescript_type = "Promise<string>")]
     pub type PromiseString;
 
+    #[wasm_bindgen(typescript_type = "Promise<bigint>")]
+    pub type PromiseBigInt;
+
     #[wasm_bindgen(typescript_type = "SignatureData")]
     pub type SignatureDataJS;
 

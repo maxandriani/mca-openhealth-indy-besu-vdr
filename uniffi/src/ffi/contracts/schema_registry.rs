@@ -20,11 +20,13 @@ pub async fn build_create_schema_transaction(
     client: &LedgerClient,
     from: &str,
     schema: &Schema,
+    nonce: Option<u64>,
 ) -> VdrResult<Transaction> {
     schema_registry::build_create_schema_transaction(
         &client.client,
         &Address::from(from),
         &Schema_::from(schema),
+        nonce,
     )
     .await
     .map(Transaction::from)

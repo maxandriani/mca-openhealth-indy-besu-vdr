@@ -29,6 +29,7 @@ const METHOD_RESOLVE_CREDENTIAL_DEFINITION: &str = "resolveCredentialDefinition"
 /// - `client`: [LedgerClient] - client connected to the network where contract will be executed
 /// - `from`: [Address] - transaction sender account address
 /// - `credential_definition`: [CredentialDefinition] - object matching to the specification - `<https://hyperledger.github.io/anoncreds-spec/#term:credential-definition>`
+/// - `nonce`: Option<u64> - optional transaction nonce managed externally. If not provided, the nonce will be obtained from the ledger
 ///
 /// # Returns
 ///   transaction: [Transaction] - prepared write transaction object to sign and submit
@@ -38,6 +39,7 @@ pub async fn build_create_credential_definition_transaction(
     client: &LedgerClient,
     from: &Address,
     credential_definition: &CredentialDefinition,
+    nonce: Option<u64>,
 ) -> VdrResult<Transaction> {
     credential_definition.validate()?;
     let identity = Address::try_from(&credential_definition.issuer_id)?;
@@ -51,6 +53,7 @@ pub async fn build_create_credential_definition_transaction(
         .add_param(credential_definition)?
         .set_type(TransactionType::Write)
         .set_from(from)
+        .set_nonce(nonce)
         .build(client)
         .await
 }
@@ -212,10 +215,14 @@ pub mod test {
             let schema_id = SchemaId::build(&issuer, SCHEMA_NAME, SCHEMA_VERSION);
             let cred_def =
                 credential_definition(&issuer, &schema_id, Some(CREDENTIAL_DEFINITION_TAG));
-            let transaction =
-                build_create_credential_definition_transaction(&client, &TEST_ACCOUNT, &cred_def)
-                    .await
-                    .unwrap();
+            let transaction = build_create_credential_definition_transaction(
+                &client,
+                &TEST_ACCOUNT,
+                &cred_def,
+                None,
+            )
+            .await
+            .unwrap();
             // identity account address is extracted from the issuer DID
             let identity = hex::decode("f0e2db6c8dc6c681bb5d6ad121a107f300e9b2b5").unwrap();
             assert!(data_contains(&transaction.data, &identity));
@@ -239,10 +246,14 @@ pub mod test {
                 &SchemaId::from(SCHEMA_ID),
                 Some(CREDENTIAL_DEFINITION_TAG),
             );
-            let transaction =
-                build_create_credential_definition_transaction(&client, &TEST_ACCOUNT, &cred_def)
-                    .await
-                    .unwrap();
+            let transaction = build_create_credential_definition_transaction(
+                &client,
+                &TEST_ACCOUNT,
+                &cred_def,
+                None,
+            )
+            .await
+            .unwrap();
             let expected_transaction = Transaction {
                 type_: TransactionType::Write,
                 from: Some(TEST_ACCOUNT.clone()),
@@ -308,6 +319,7 @@ pub mod test {
                 &client,
                 &TRUSTEE_ACCOUNT,
                 &cred_def,
+                None,
             )
             .await
             .unwrap_err();

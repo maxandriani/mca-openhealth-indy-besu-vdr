@@ -55,9 +55,10 @@ mod helpers {
 
         data.set_signature(signature);
 
-        let transaction = endorsing::build_endorsement_transaction(client, &TRUSTEE_ACCOUNT, &data)
-            .await
-            .unwrap();
+        let transaction =
+            endorsing::build_endorsement_transaction(client, &TRUSTEE_ACCOUNT, &data, None)
+                .await
+                .unwrap();
 
         super::helpers::sign_and_submit_transaction(&client, transaction, &signer).await;
     }
@@ -73,6 +74,7 @@ mod helpers {
             &TRUSTEE_ACCOUNT,
             role_to_assign,
             assignee_account,
+            None,
         )
         .await
         .unwrap();
@@ -111,6 +113,7 @@ mod did_indy {
             &identity,
             &did_doc.id,
             &did_doc,
+            None,
         )
         .await
         .unwrap();
@@ -134,16 +137,21 @@ mod did_indy {
             &identity,
             &did_doc.id,
             &did_doc,
+            None,
         )
         .await
         .unwrap();
         super::helpers::sign_and_submit_transaction(&client, transaction, &signer).await;
 
         // deactivate
-        let transaction =
-            did_indy_registry::build_deactivate_did_transaction(&client, &identity, &did_doc.id)
-                .await
-                .unwrap();
+        let transaction = did_indy_registry::build_deactivate_did_transaction(
+            &client,
+            &identity,
+            &did_doc.id,
+            None,
+        )
+        .await
+        .unwrap();
         super::helpers::sign_and_submit_transaction(&client, transaction, &signer).await;
 
         // read
@@ -167,10 +175,14 @@ mod did_indy {
         let signature = super::helpers::sign_endorsing_data(&endorsement_data, &signer);
         endorsement_data.set_signature(signature);
 
-        let transaction =
-            endorsing::build_endorsement_transaction(&client, &TRUSTEE_ACCOUNT, &endorsement_data)
-                .await
-                .unwrap();
+        let transaction = endorsing::build_endorsement_transaction(
+            &client,
+            &TRUSTEE_ACCOUNT,
+            &endorsement_data,
+            None,
+        )
+        .await
+        .unwrap();
 
         super::helpers::sign_and_submit_transaction(&client, transaction, &signer).await;
 
@@ -253,6 +265,7 @@ mod did_ethr {
             &did,
             &service(),
             &validity(),
+            None,
         )
         .await
         .unwrap();
@@ -282,6 +295,7 @@ mod did_ethr {
             &did,
             &public_key(),
             &validity(),
+            None,
         )
         .await
         .unwrap();
@@ -480,6 +494,7 @@ mod schema {
             &client,
             &TRUSTEE_ACCOUNT.clone(),
             &schema,
+            None,
         )
         .await
         .unwrap();
@@ -546,10 +561,14 @@ mod credential_definition {
 
         // create Schema
         let schema = schema(&did, None);
-        let transaction =
-            schema_registry::build_create_schema_transaction(&client, &TRUSTEE_ACCOUNT, &schema)
-                .await
-                .unwrap();
+        let transaction = schema_registry::build_create_schema_transaction(
+            &client,
+            &TRUSTEE_ACCOUNT,
+            &schema,
+            None,
+        )
+        .await
+        .unwrap();
         super::helpers::sign_and_submit_transaction(&client, transaction, &signer).await;
 
         // write
@@ -559,6 +578,7 @@ mod credential_definition {
                 &client,
                 &TRUSTEE_ACCOUNT,
                 &credential_definition,
+                None,
             )
             .await
             .unwrap();
@@ -641,10 +661,14 @@ mod revocation_registry_definition {
 
         // create Schema
         let schema = schema(&did, None);
-        let transaction =
-            schema_registry::build_create_schema_transaction(&client, &TRUSTEE_ACCOUNT, &schema)
-                .await
-                .unwrap();
+        let transaction = schema_registry::build_create_schema_transaction(
+            &client,
+            &TRUSTEE_ACCOUNT,
+            &schema,
+            None,
+        )
+        .await
+        .unwrap();
         super::helpers::sign_and_submit_transaction(&client, transaction, &signer).await;
 
         // create Credential Definition
@@ -654,6 +678,7 @@ mod revocation_registry_definition {
                 &client,
                 &TRUSTEE_ACCOUNT,
                 &credential_definition,
+                None,
             )
             .await
             .unwrap();
@@ -667,6 +692,7 @@ mod revocation_registry_definition {
                 &client,
                 &TRUSTEE_ACCOUNT,
                 &revocation_registry,
+                None,
             )
             .await
             .unwrap();
@@ -756,10 +782,14 @@ mod revocation_registry_entry {
 
         // create Schema
         let schema = schema(&did, None);
-        let transaction =
-            schema_registry::build_create_schema_transaction(&client, &TRUSTEE_ACCOUNT, &schema)
-                .await
-                .unwrap();
+        let transaction = schema_registry::build_create_schema_transaction(
+            &client,
+            &TRUSTEE_ACCOUNT,
+            &schema,
+            None,
+        )
+        .await
+        .unwrap();
         super::helpers::sign_and_submit_transaction(&client, transaction, &signer).await;
 
         // create Credential Definition
@@ -769,6 +799,7 @@ mod revocation_registry_entry {
                 &client,
                 &TRUSTEE_ACCOUNT,
                 &credential_definition,
+                None,
             )
             .await
             .unwrap();
@@ -783,6 +814,7 @@ mod revocation_registry_entry {
                 &client,
                 &TRUSTEE_ACCOUNT,
                 &revocation_registry_definition,
+                None,
             )
             .await
             .unwrap();
@@ -800,6 +832,7 @@ mod revocation_registry_entry {
             &client,
             &TRUSTEE_ACCOUNT,
             &revocation_registry_entry1,
+            None,
         )
         .await
         .unwrap();
@@ -818,6 +851,7 @@ mod revocation_registry_entry {
             &client,
             &TRUSTEE_ACCOUNT,
             &revocation_registry_entry2,
+            None,
         )
         .await
         .unwrap();
@@ -963,6 +997,7 @@ mod role {
             &TRUSTEE_ACCOUNT,
             role_to_revoke,
             revokee_account,
+            None,
         )
         .await
         .unwrap();
@@ -1048,6 +1083,7 @@ mod validator {
             &client,
             &TRUSTEE_ACCOUNT,
             new_validator_address,
+            None,
         )
         .await
         .unwrap();
@@ -1064,6 +1100,7 @@ mod validator {
             &client,
             &TRUSTEE_ACCOUNT,
             validator_address,
+            None,
         )
         .await
         .unwrap();
@@ -1136,6 +1173,7 @@ mod mapping {
             &legacy_did,
             &legacy_verkey,
             &legacy_signature,
+            None,
         )
         .await
         .unwrap();
@@ -1168,6 +1206,7 @@ mod mapping {
             &legacy_did,
             &legacy_schema_id,
             &schema_id,
+            None,
         )
         .await
         .unwrap();

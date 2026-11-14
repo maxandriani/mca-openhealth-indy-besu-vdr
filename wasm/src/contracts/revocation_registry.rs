@@ -32,6 +32,7 @@ impl RevocationRegistry {
         client: &LedgerClientWrapper,
         from: &str,
         rev_reg_def: &RevocationRegistryDefinitionWrapper,
+        nonce: Option<u64>,
     ) -> Result<TransactionWrapper> {
         let client = client.0.clone();
         let address = Address::from(from);
@@ -39,6 +40,7 @@ impl RevocationRegistry {
             &client,
             &address,
             &rev_reg_def.0,
+            nonce,
         )
         .await
         .as_js()
@@ -66,6 +68,7 @@ impl RevocationRegistry {
         client: &LedgerClientWrapper,
         from: &str,
         rev_reg_entry: &RevocationRegistryEntryWrapper,
+        nonce: Option<u64>,
     ) -> Result<TransactionWrapper> {
         let client = client.0.clone();
         let address = Address::from(from);
@@ -73,6 +76,7 @@ impl RevocationRegistry {
             &client,
             &address,
             &rev_reg_entry.0,
+            nonce,
         )
         .await
         .as_js()

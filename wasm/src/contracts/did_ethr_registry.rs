@@ -31,15 +31,18 @@ impl EthrDidRegistry {
         sender: &str,
         did: &str,
         new_owner: &str,
+        nonce: Option<u64>,
     ) -> Result<TransactionWrapper> {
         let sender = Address::from(sender);
         let did = DID::from(did);
         let new_owner = Address::from(new_owner);
-        did_ethr_registry::build_did_change_owner_transaction(&client.0, &sender, &did, &new_owner)
-            .await
-            .as_js()
-            .map(TransactionWrapper::from)
-            .map_err(JsValue::from)
+        did_ethr_registry::build_did_change_owner_transaction(
+            &client.0, &sender, &did, &new_owner, nonce,
+        )
+        .await
+        .as_js()
+        .map(TransactionWrapper::from)
+        .map_err(JsValue::from)
     }
 
     #[wasm_bindgen(js_name = buildDidChangeOwnerEndorsingData)]
@@ -65,6 +68,7 @@ impl EthrDidRegistry {
         delegate_type: &str,
         delegate: &str,
         validity: u64,
+        nonce: Option<u64>,
     ) -> Result<TransactionWrapper> {
         let sender = Address::from(sender);
         let did = DID::from(did);
@@ -78,6 +82,7 @@ impl EthrDidRegistry {
             &delegate_type,
             &delegate,
             &validity,
+            nonce,
         )
         .await
         .as_js()
@@ -117,6 +122,7 @@ impl EthrDidRegistry {
         did: &str,
         delegate_type: &str,
         delegate: &str,
+        nonce: Option<u64>,
     ) -> Result<TransactionWrapper> {
         let sender = Address::from(sender);
         let did = DID::from(did);
@@ -128,6 +134,7 @@ impl EthrDidRegistry {
             &did,
             &delegate_type,
             &delegate,
+            nonce,
         )
         .await
         .as_js()
@@ -164,6 +171,7 @@ impl EthrDidRegistry {
         did: &str,
         attribute: DidDocAttributeJS,
         validity: u64,
+        nonce: Option<u64>,
     ) -> Result<TransactionWrapper> {
         let sender = Address::from(sender);
         let did = DID::from(did);
@@ -175,6 +183,7 @@ impl EthrDidRegistry {
             &did,
             &did_attribute,
             &validity,
+            nonce,
         )
         .await
         .as_js()
@@ -210,6 +219,7 @@ impl EthrDidRegistry {
         sender: &str,
         did: &str,
         attribute: DidDocAttributeJS,
+        nonce: Option<u64>,
     ) -> Result<TransactionWrapper> {
         let sender = Address::from(sender);
         let did = DID::from(did);
@@ -219,6 +229,7 @@ impl EthrDidRegistry {
             &sender,
             &did,
             &did_attribute,
+            nonce,
         )
         .await
         .as_js()

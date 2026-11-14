@@ -22,11 +22,12 @@ impl RoleControl {
         from: &str,
         role: u8,
         account: &str,
+        nonce: Option<u64>,
     ) -> Result<TransactionWrapper> {
         let role = Role::try_from(role).as_js()?;
         let from = Address::from(from);
         let account = Address::from(account);
-        role_control::build_assign_role_transaction(&client.0, &from, &role, &account)
+        role_control::build_assign_role_transaction(&client.0, &from, &role, &account, nonce)
             .await
             .as_js()
             .map(TransactionWrapper::from)
@@ -39,11 +40,12 @@ impl RoleControl {
         from: &str,
         role: u8,
         account: &str,
+        nonce: Option<u64>,
     ) -> Result<TransactionWrapper> {
         let role = Role::try_from(role).as_js()?;
         let from = Address::from(from);
         let account = Address::from(account);
-        role_control::build_revoke_role_transaction(&client.0, &from, &role, &account)
+        role_control::build_revoke_role_transaction(&client.0, &from, &role, &account, nonce)
             .await
             .as_js()
             .map(TransactionWrapper::from)

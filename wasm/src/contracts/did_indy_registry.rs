@@ -24,11 +24,12 @@ impl IndyDidRegistry {
         from: &str,
         did: &str,
         did_doc: DidDocumentJS,
+        nonce: Option<u64>,
     ) -> Result<TransactionWrapper> {
         let did_doc: DidDocument = serde_wasm_bindgen::from_value(did_doc.into())?;
         let address = Address::from(from);
         let did = DID::from(did);
-        did_indy_registry::build_create_did_transaction(&client.0, &address, &did, &did_doc)
+        did_indy_registry::build_create_did_transaction(&client.0, &address, &did, &did_doc, nonce)
             .await
             .as_js()
             .map(TransactionWrapper::from)
@@ -56,11 +57,12 @@ impl IndyDidRegistry {
         from: &str,
         did: &str,
         did_doc: DidDocumentJS,
+        nonce: Option<u64>,
     ) -> Result<TransactionWrapper> {
         let from = Address::from(from);
         let did = DID::from(did);
         let did_doc: DidDocument = serde_wasm_bindgen::from_value(did_doc.into())?;
-        did_indy_registry::build_update_did_transaction(&client.0, &from, &did, &did_doc)
+        did_indy_registry::build_update_did_transaction(&client.0, &from, &did, &did_doc, nonce)
             .await
             .as_js()
             .map(TransactionWrapper::from)
@@ -87,10 +89,11 @@ impl IndyDidRegistry {
         client: &LedgerClientWrapper,
         from: &str,
         did: &str,
+        nonce: Option<u64>,
     ) -> Result<TransactionWrapper> {
         let address = Address::from(from);
         let did = DID::from(did);
-        did_indy_registry::build_deactivate_did_transaction(&client.0, &address, &did)
+        did_indy_registry::build_deactivate_did_transaction(&client.0, &address, &did, nonce)
             .await
             .as_js()
             .map(TransactionWrapper::from)

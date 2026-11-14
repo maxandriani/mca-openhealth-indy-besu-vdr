@@ -15,11 +15,13 @@ pub async fn build_endorsement_transaction(
     client: &LedgerClient,
     from: &str,
     endorsing_data: &TransactionEndorsingData,
+    nonce: Option<u64>,
 ) -> VdrResult<Transaction> {
     endorsing::build_endorsement_transaction(
         &client.client,
         &Address::from(from),
         &endorsing_data.into(),
+        nonce,
     )
     .await
     .map(Transaction::from)

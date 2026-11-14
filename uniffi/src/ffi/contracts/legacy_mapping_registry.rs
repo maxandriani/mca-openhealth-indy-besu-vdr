@@ -21,6 +21,7 @@ pub async fn build_create_did_mapping_transaction(
     legacy_identifier: &str,
     legacy_verkey: &str,
     ed25519_signature: &[u8],
+    nonce: Option<u64>,
 ) -> VdrResult<Transaction> {
     legacy_mapping_registry::build_create_did_mapping_transaction(
         &client.client,
@@ -29,6 +30,7 @@ pub async fn build_create_did_mapping_transaction(
         &LegacyDid::from(legacy_identifier),
         &LegacyVerkey::from(legacy_verkey),
         &Ed25519Signature::from(ed25519_signature),
+        nonce,
     )
     .await
     .map(Transaction::from)
@@ -83,6 +85,7 @@ pub async fn build_create_resource_mapping_transaction(
     legacy_issuer_identifier: &str,
     legacy_identifier: &str,
     new_identifier: &str,
+    nonce: Option<u64>,
 ) -> VdrResult<Transaction> {
     legacy_mapping_registry::build_create_resource_mapping_transaction(
         &client.client,
@@ -91,6 +94,7 @@ pub async fn build_create_resource_mapping_transaction(
         &LegacyDid::from(legacy_issuer_identifier),
         &ResourceIdentifier::from(legacy_identifier),
         &ResourceIdentifier::from(new_identifier),
+        nonce,
     )
     .await
     .map(Transaction::from)

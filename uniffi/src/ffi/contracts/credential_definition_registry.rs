@@ -23,11 +23,13 @@ pub async fn build_create_credential_definition_transaction(
     client: &LedgerClient,
     from: &str,
     credential_definition: &CredentialDefinition,
+    nonce: Option<u64>,
 ) -> VdrResult<Transaction> {
     credential_definition_registry::build_create_credential_definition_transaction(
         &client.client,
         &Address::from(from),
         &CredentialDefinition_::from(credential_definition),
+        nonce,
     )
     .await
     .map(Transaction::from)

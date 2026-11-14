@@ -21,6 +21,7 @@ pub async fn build_create_did_transaction(
     from: &str,
     did: &str,
     did_doc: JsonValue,
+    nonce: Option<u64>,
 ) -> VdrResult<Transaction> {
     let did_doc = serde_json::from_value(did_doc.into_inner()).map_err(|err| {
         VdrError::CommonInvalidData {
@@ -32,6 +33,7 @@ pub async fn build_create_did_transaction(
         &Address::from(from),
         &DID::from(did),
         &did_doc,
+        nonce,
     )
     .await
     .map(Transaction::from)
@@ -59,6 +61,7 @@ pub async fn build_update_did_transaction(
     from: &str,
     did: &str,
     did_doc: &str,
+    nonce: Option<u64>,
 ) -> VdrResult<Transaction> {
     let did_doc = serde_json::from_str(did_doc).map_err(|err| VdrError::CommonInvalidData {
         msg: format!("Unable to parse DID DDocument. Err: {:?}", err),
@@ -68,6 +71,7 @@ pub async fn build_update_did_transaction(
         &Address::from(from),
         &DID::from(did),
         &did_doc,
+        nonce,
     )
     .await
     .map(Transaction::from)
@@ -94,11 +98,13 @@ pub async fn build_deactivate_did_transaction(
     client: &LedgerClient,
     from: &str,
     did: &str,
+    nonce: Option<u64>,
 ) -> VdrResult<Transaction> {
     did_indy_registry::build_deactivate_did_transaction(
         &client.client,
         &Address::from(from),
         &DID::from(did),
+        nonce,
     )
     .await
     .map(Transaction::from)

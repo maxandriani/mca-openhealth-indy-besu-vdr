@@ -6,15 +6,15 @@ use std::rc::Rc;
 use wasm_bindgen::{prelude::*, JsCast};
 use wasm_bindgen_futures::future_to_promise;
 
-use indy_besu_vdr::{ContractConfig, LedgerClient, QuorumConfig};
+use indy_besu_vdr::{Address, ContractConfig, LedgerClient, QuorumConfig};
 
 use crate::{
     error::{JsResult, Result},
     event_query::EventQueryWrapper,
     transaction::TransactionWrapper,
     types::{
-        ContractConfigArray, OptionalQuorumConfig, PromiseBytes, PromiseEventLogArray,
-        PromisePingStatus, PromiseString,
+        ContractConfigArray, OptionalQuorumConfig, PromiseBigInt, PromiseBytes,
+        PromiseEventLogArray, PromisePingStatus, PromiseString,
     },
 };
 
@@ -89,6 +89,17 @@ impl LedgerClientWrapper {
             let receipt = client.get_receipt(&hash).await.as_js()?;
             let result: JsValue = serde_wasm_bindgen::to_value(&receipt)?;
             Ok(result)
+        })
+        .unchecked_into()
+    }
+
+    #[wasm_bindgen(js_name = getTransactionCount)]
+    pub fn get_transaction_count(&self, address: &str) -> PromiseBigInt {
+        let client = self.0.clone();
+        let address = Address::from(address);
+        future_to_promise(async move {
+            let count = client.get_transaction_count(&address).await.as_js()?;
+            Ok(JsValue::from(count))
         })
         .unchecked_into()
     }

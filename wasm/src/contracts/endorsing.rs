@@ -21,12 +21,18 @@ impl Endorsement {
         client: &LedgerClientWrapper,
         from: &str,
         endorsing_data: &TransactionEndorsingDataWrapper,
+        nonce: Option<u64>,
     ) -> Result<TransactionWrapper> {
         let from = Address::from(from);
-        endorsing::build_endorsement_transaction(&client.0, &from, &endorsing_data.0.borrow())
-            .await
-            .as_js()
-            .map(TransactionWrapper::from)
-            .map_err(JsValue::from)
+        endorsing::build_endorsement_transaction(
+            &client.0,
+            &from,
+            &endorsing_data.0.borrow(),
+            nonce,
+        )
+        .await
+        .as_js()
+        .map(TransactionWrapper::from)
+        .map_err(JsValue::from)
     }
 }

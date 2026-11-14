@@ -30,7 +30,7 @@ jobs:
           toolchain: ${{ env.RUST_TOOLCHAIN }}
           targets: wasm32-unknown-unknown
 
-      - run: cargo test
+      - run: cargo test --features "basic_signer migration"
 
   pack_artifacts:
     if: ${{ github.event.ref_type == 'tag' }}
