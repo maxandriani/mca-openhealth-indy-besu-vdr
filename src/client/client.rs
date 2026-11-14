@@ -127,6 +127,33 @@ impl LedgerClient {
         Ok(data)
     }
 
+    /// Broadcast prepared and signed write transaction to the ledger without waiting for
+    /// the transaction to be included in a block
+    ///     Performs a single `eth_sendRawTransaction` call and returns the transaction hash
+    ///     immediately: no block filter polling, receipt lookup, or mining wait is done.
+    ///     Use `get_receipt` separately to await and inspect the execution result.
+    ///
+    /// #Params
+    ///  `transaction`: [Transaction] - signed write transaction to broadcast
+    ///
+    /// #Returns
+    ///  hash: [Vec] - hash of the broadcast transaction
+    #[logfn(Info)]
+    #[logfn_inputs(Debug)]
+    pub async fn broadcast_transaction(&self, transaction: &Transaction) -> VdrResult<Vec<u8>> {
+        match transaction.type_ {
+            TransactionType::Write => {
+                self.client
+                    .broadcast_transaction(&transaction.encode()?)
+                    .await
+            }
+            TransactionType::Read => Err(VdrError::ClientInvalidTransaction(
+                "Read transactions cannot be broadcast. Use `submit_transaction` instead."
+                    .to_string(),
+            )),
+        }
+    }
+
     /// Submit prepared events query to the ledger
     ///
     /// #Params
@@ -521,6 +548,71 @@ pub mod test {
 
         ledger_client.client = client;
         ledger_client
+    }
+
+    mod broadcast {
+        use super::*;
+        use crate::{
+            transaction::test::{read_transaction, write_transaction},
+            SignatureData,
+        };
+        use mockall::predicate::eq;
+
+        fn signed_write_transaction() -> Transaction {
+            let mut transaction = write_transaction();
+            transaction.set_signature(SignatureData {
+                recovery_id: 1,
+                signature: vec![1; 64],
+            });
+            transaction
+        }
+
+        #[async_std::test]
+        async fn broadcast_transaction_returns_hash_without_waiting_for_receipt() {
+            let transaction = signed_write_transaction();
+            let expected_hash = vec![2; 32];
+            // only `broadcast_transaction` is expected: any submit/receipt call would panic
+            let mut client_mock = MockClient::new();
+            let hash = expected_hash.clone();
+            client_mock
+                .expect_broadcast_transaction()
+                .with(eq(transaction.encode().unwrap()))
+                .returning(move |_| Ok(hash.clone()));
+            let client = mock_custom_client(Box::new(client_mock));
+
+            let transaction_hash = client.broadcast_transaction(&transaction).await.unwrap();
+
+            assert_eq!(expected_hash, transaction_hash);
+        }
+
+        #[async_std::test]
+        async fn broadcast_transaction_rejects_read_transactions() {
+            let client = mock_custom_client(Box::new(MockClient::new()));
+
+            let error = client
+                .broadcast_transaction(&read_transaction())
+                .await
+                .unwrap_err();
+
+            assert!(matches!(error, VdrError::ClientInvalidTransaction { .. }));
+        }
+
+        #[async_std::test]
+        async fn broadcast_transaction_propagates_submission_errors() {
+            let transaction = signed_write_transaction();
+            let mut client_mock = MockClient::new();
+            client_mock
+                .expect_broadcast_transaction()
+                .returning(|_| Err(VdrError::ClientNodeUnreachable));
+            let client = mock_custom_client(Box::new(client_mock));
+
+            let error = client
+                .broadcast_transaction(&transaction)
+                .await
+                .unwrap_err();
+
+            assert!(matches!(error, VdrError::ClientNodeUnreachable));
+        }
     }
 
     mod create {

@@ -142,6 +142,26 @@ impl Client for Web3Client {
         Ok(transaction_hash)
     }
 
+    async fn broadcast_transaction(&self, transaction: &[u8]) -> VdrResult<Vec<u8>> {
+        trace!(
+            "Web3Client::broadcast_transaction(transaction: {:?})",
+            transaction
+        );
+
+        let transaction_hash = self
+            .client
+            .eth()
+            .send_raw_transaction(Bytes::from(transaction))
+            .await?;
+
+        trace!(
+            "Web3Client::broadcast_transaction() -> {:?}",
+            transaction_hash
+        );
+
+        Ok(transaction_hash.0.to_vec())
+    }
+
     async fn call_transaction(&self, to: &str, transaction: &[u8]) -> VdrResult<Vec<u8>> {
         trace!(
             "Web3Client::call_transaction(to: {:?}, transaction: {:?})",
@@ -334,5 +354,113 @@ impl Client for Web3Client {
 impl Debug for Web3Client {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         write!(f, r#"Web3Client {{ }}"#)
+    }
+}
+
+#[cfg(all(test, not(feature = "wasm")))]
+mod test {
+    use super::*;
+    use std::{
+        io::{Read, Write},
+        net::{TcpListener, TcpStream},
+        sync::{Arc, Mutex},
+        thread,
+    };
+
+    fn find_subsequence(haystack: &[u8], needle: &[u8]) -> Option<usize> {
+        haystack
+            .windows(needle.len())
+            .position(|window| window == needle)
+    }
+
+    fn read_request_body(stream: &mut TcpStream) -> Option<String> {
+        let mut data = Vec::new();
+        let mut buf = [0u8; 4096];
+        loop {
+            let read = stream.read(&mut buf).ok()?;
+            if read == 0 {
+                return None;
+            }
+            data.extend_from_slice(&buf[..read]);
+            if let Some(headers_end) = find_subsequence(&data, b"\r\n\r\n") {
+                let headers = String::from_utf8_lossy(&data[..headers_end]).to_string();
+                let content_length = headers
+                    .lines()
+                    .find_map(|line| {
+                        let (name, value) = line.split_once(':')?;
+                        name.eq_ignore_ascii_case("content-length")
+                            .then(|| value.trim().parse::<usize>().ok())
+                            .flatten()
+                    })
+                    .unwrap_or(0);
+                let body_start = headers_end + 4;
+                while data.len() < body_start + content_length {
+                    let read = stream.read(&mut buf).ok()?;
+                    if read == 0 {
+                        return None;
+                    }
+                    data.extend_from_slice(&buf[..read]);
+                }
+                return Some(
+                    String::from_utf8_lossy(&data[body_start..body_start + content_length])
+                        .to_string(),
+                );
+            }
+        }
+    }
+
+    /// Minimal JSON-RPC HTTP stub which records the called methods and answers every
+    /// request with a fixed 32-byte hash. It never produces blocks, so any block
+    /// filter polling or receipt lookup would hang/keep calling instead of resolving.
+    fn spawn_rpc_stub(result: &'static str) -> (String, Arc<Mutex<Vec<String>>>) {
+        let listener = TcpListener::bind("127.0.0.1:0").unwrap();
+        let node_address = format!("http://{}", listener.local_addr().unwrap());
+        let methods: Arc<Mutex<Vec<String>>> = Arc::new(Mutex::new(Vec::new()));
+        let recorded = methods.clone();
+        thread::spawn(move || {
+            for stream in listener.incoming() {
+                let Ok(mut stream) = stream else { break };
+                let Some(body) = read_request_body(&mut stream) else {
+                    continue;
+                };
+                let request: serde_json::Value = match serde_json::from_str(&body) {
+                    Ok(request) => request,
+                    Err(_) => continue,
+                };
+                let method = request["method"].as_str().unwrap_or_default().to_string();
+                recorded.lock().unwrap().push(method);
+                let response_body = json!({
+                    "jsonrpc": "2.0",
+                    "id": request["id"],
+                    "result": result,
+                })
+                .to_string();
+                let response = format!(
+                    "HTTP/1.1 200 OK\r\nContent-Type: application/json\r\nContent-Length: {}\r\nConnection: close\r\n\r\n{}",
+                    response_body.len(),
+                    response_body
+                );
+                let _ = stream.write_all(response.as_bytes());
+            }
+        });
+        (node_address, methods)
+    }
+
+    #[async_std::test]
+    async fn broadcast_transaction_sends_single_raw_transaction_rpc() {
+        let expected_hash = vec![0x22u8; 32];
+        let (node_address, methods) =
+            spawn_rpc_stub("0x2222222222222222222222222222222222222222222222222222222222222222");
+        let client = Web3Client::new(&node_address).unwrap();
+
+        let transaction_hash = client.broadcast_transaction(&[1, 2, 3]).await.unwrap();
+
+        assert_eq!(expected_hash, transaction_hash);
+        // broadcast must resolve right after `eth_sendRawTransaction`, even though the stub
+        // never produces blocks: no block filter, filter polling, or receipt RPCs are made
+        assert_eq!(
+            vec!["eth_sendRawTransaction".to_string()],
+            *methods.lock().unwrap()
+        );
     }
 }

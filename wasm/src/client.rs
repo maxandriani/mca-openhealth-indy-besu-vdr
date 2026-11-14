@@ -70,6 +70,19 @@ impl LedgerClientWrapper {
         .unchecked_into()
     }
 
+    #[wasm_bindgen(js_name = broadcastTransaction)]
+    pub fn broadcast_transaction(&self, transaction: &TransactionWrapper) -> PromiseBytes {
+        let client = self.0.clone();
+        let transaction = transaction.0.clone();
+        future_to_promise(async move {
+            let transaction = transaction.borrow();
+            let response = client.broadcast_transaction(&transaction).await.as_js()?;
+            let result: JsValue = serde_wasm_bindgen::to_value(&response)?;
+            Ok(result)
+        })
+        .unchecked_into()
+    }
+
     #[wasm_bindgen(js_name = queryEvents)]
     pub fn query_events(&self, query: &EventQueryWrapper) -> PromiseEventLogArray {
         let client = self.0.clone();

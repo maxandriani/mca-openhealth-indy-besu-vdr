@@ -50,6 +50,15 @@ pub trait Client: Sync + Send + Debug {
     /// hash of a block in which transaction included
     async fn submit_transaction(&self, transaction: &[u8]) -> VdrResult<Vec<u8>>;
 
+    /// Broadcast transaction to the ledger without waiting for block inclusion or receipt
+    ///
+    /// # Params
+    /// - `transaction` signed raw transaction bytes to broadcast
+    ///
+    /// # Returns
+    /// hash of the broadcast transaction
+    async fn broadcast_transaction(&self, transaction: &[u8]) -> VdrResult<Vec<u8>>;
+
     /// Submit read transaction to the ledger
     ///
     /// # Params

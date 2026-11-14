@@ -56,6 +56,13 @@ impl LedgerClient {
             .map_err(VdrError::from)
     }
 
+    pub async fn broadcast_transaction(&self, transaction: &Transaction) -> VdrResult<Vec<u8>> {
+        self.client
+            .broadcast_transaction(&transaction.into())
+            .await
+            .map_err(VdrError::from)
+    }
+
     pub async fn query_events(&self, query: &EventQuery) -> VdrResult<Vec<EventLog>> {
         Ok(self
             .client
