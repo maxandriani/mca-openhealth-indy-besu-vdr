@@ -4,9 +4,9 @@
 
 use crate::JsonValue;
 use indy_besu_vdr::{
-    ContractConfig as ContractConfig_, ContractSpec as ContractSpec_, PingStatus as PingStatus_,
-    QuorumConfig as QuorumConfig_, SignatureData as SignatureData_, Status as Status_,
-    TransactionType as TransactionType_,
+    BlockTag as BlockTag_, ContractConfig as ContractConfig_, ContractSpec as ContractSpec_,
+    PingStatus as PingStatus_, QuorumConfig as QuorumConfig_, SignatureData as SignatureData_,
+    Status as Status_, TransactionType as TransactionType_,
 };
 
 #[derive(uniffi::Record)]
@@ -42,6 +42,23 @@ pub struct ContractSpec {
 pub enum TransactionType {
     Read,
     Write,
+}
+
+#[derive(uniffi::Enum)]
+pub enum BlockTag {
+    Latest,
+    Pending,
+    Earliest,
+}
+
+impl From<BlockTag> for BlockTag_ {
+    fn from(tag: BlockTag) -> BlockTag_ {
+        match tag {
+            BlockTag::Latest => BlockTag_::Latest,
+            BlockTag::Pending => BlockTag_::Pending,
+            BlockTag::Earliest => BlockTag_::Earliest,
+        }
+    }
 }
 
 #[derive(uniffi::Record)]

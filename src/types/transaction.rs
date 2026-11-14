@@ -288,7 +288,7 @@ impl TransactionBuilder {
                 })?;
                 match self.nonce {
                     Some(nonce) => Some(nonce),
-                    None => Some(client.get_transaction_count(from).await?),
+                    None => Some(client.get_transaction_count(from, None).await?),
                 }
             }
             TransactionType::Read => None,
@@ -380,6 +380,35 @@ impl TransactionParser {
 /// Wrapper structure for transaction block number
 #[derive(Debug, Clone, PartialEq, Deserialize, Serialize)]
 pub struct Block(u64);
+
+/// Block state to use when querying the number of transactions sent by an account
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Deserialize, Serialize)]
+#[serde(rename_all = "lowercase")]
+pub enum BlockTag {
+    /// Latest mined block
+    #[default]
+    Latest,
+    /// Pending block (includes transactions not yet mined)
+    Pending,
+    /// Earliest block (genesis)
+    Earliest,
+}
+
+impl TryFrom<&str> for BlockTag {
+    type Error = VdrError;
+
+    fn try_from(value: &str) -> Result<Self, Self::Error> {
+        match value {
+            "latest" => Ok(BlockTag::Latest),
+            "pending" => Ok(BlockTag::Pending),
+            "earliest" => Ok(BlockTag::Earliest),
+            value => Err(VdrError::CommonInvalidData(format!(
+                "Invalid block tag provided: {}",
+                value
+            ))),
+        }
+    }
+}
 
 impl Block {
     pub fn value(&self) -> u64 {
@@ -676,6 +705,22 @@ pub mod test {
                 .unwrap();
 
             assert_eq!(None, transaction.nonce);
+        }
+    }
+
+    #[cfg(test)]
+    pub mod block_tag_test {
+        use super::*;
+
+        #[test]
+        fn block_tag_try_from_str() {
+            assert_eq!(BlockTag::Latest, BlockTag::try_from("latest").unwrap());
+            assert_eq!(BlockTag::Pending, BlockTag::try_from("pending").unwrap());
+            assert_eq!(BlockTag::Earliest, BlockTag::try_from("earliest").unwrap());
+            assert!(matches!(
+                BlockTag::try_from("foo").unwrap_err(),
+                VdrError::CommonInvalidData { .. }
+            ));
         }
     }
 

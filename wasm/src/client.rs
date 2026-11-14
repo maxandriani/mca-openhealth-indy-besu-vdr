@@ -6,14 +6,14 @@ use std::rc::Rc;
 use wasm_bindgen::{prelude::*, JsCast};
 use wasm_bindgen_futures::future_to_promise;
 
-use indy_besu_vdr::{Address, ContractConfig, LedgerClient, QuorumConfig};
+use indy_besu_vdr::{Address, BlockTag, ContractConfig, LedgerClient, QuorumConfig};
 
 use crate::{
     error::{JsResult, Result},
     event_query::EventQueryWrapper,
     transaction::TransactionWrapper,
     types::{
-        ContractConfigArray, OptionalQuorumConfig, PromiseBigInt, PromiseBytes,
+        ContractConfigArray, OptionalBlockTag, OptionalQuorumConfig, PromiseBigInt, PromiseBytes,
         PromiseEventLogArray, PromisePingStatus, PromiseString,
     },
 };
@@ -94,11 +94,23 @@ impl LedgerClientWrapper {
     }
 
     #[wasm_bindgen(js_name = getTransactionCount)]
-    pub fn get_transaction_count(&self, address: &str) -> PromiseBigInt {
+    pub fn get_transaction_count(
+        &self,
+        address: &str,
+        block_tag: OptionalBlockTag,
+    ) -> PromiseBigInt {
         let client = self.0.clone();
         let address = Address::from(address);
+        let block_tag: Option<String> = serde_wasm_bindgen::from_value(block_tag.into()).ok();
         future_to_promise(async move {
-            let count = client.get_transaction_count(&address).await.as_js()?;
+            let block_tag = block_tag
+                .map(|tag| BlockTag::try_from(tag.as_str()))
+                .transpose()
+                .as_js()?;
+            let count = client
+                .get_transaction_count(&address, block_tag)
+                .await
+                .as_js()?;
             Ok(JsValue::from(count))
         })
         .unchecked_into()

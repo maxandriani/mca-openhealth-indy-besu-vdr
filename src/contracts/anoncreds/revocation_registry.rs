@@ -1098,7 +1098,7 @@ pub mod test {
             // 2. Mockar todas as chamadas externas
             mock_client
                 .expect_get_transaction_count()
-                .returning(|_| Ok(0));
+                .returning(|_, _| Ok(0));
 
             mock_client.expect_query_events().returning(|_| Ok(vec![])); // sem eventos
 

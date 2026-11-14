@@ -9,7 +9,7 @@ pub mod quorum;
 
 pub mod ledger_router;
 
-use crate::{error::VdrResult, types::Address, BlockDetails, Transaction};
+use crate::{error::VdrResult, types::Address, BlockDetails, BlockTag, Transaction};
 use async_trait::async_trait;
 use ethabi::{AbiError, Event, Function};
 pub use ledger_router::{LedgerClientConfig, LedgerMode, LedgerResult, LedgerRouter};
@@ -31,10 +31,15 @@ pub trait Client: Sync + Send + Debug {
     ///
     /// # Params
     /// - `address` [Address] address of an account to get number of written transactions
+    /// - `block_tag` Option<[BlockTag]> - block state to query: latest (default), pending, or earliest
     ///
     /// # Returns
     /// number of transactions
-    async fn get_transaction_count(&self, address: &Address) -> VdrResult<u64>;
+    async fn get_transaction_count(
+        &self,
+        address: &Address,
+        block_tag: Option<BlockTag>,
+    ) -> VdrResult<u64>;
 
     /// Submit transaction to the ledger
     ///

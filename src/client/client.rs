@@ -18,8 +18,8 @@ use crate::{
     },
     error::{VdrError, VdrResult},
     types::{
-        Block, ContractConfig, ContractSpec, EventLog, EventQuery, PingStatus, Transaction,
-        TransactionType,
+        Block, BlockTag, ContractConfig, ContractSpec, EventLog, EventQuery, PingStatus,
+        Transaction, TransactionType,
     },
     Address, BlockDetails, QuorumConfig,
 };
@@ -159,13 +159,18 @@ impl LedgerClient {
     ///
     /// # Params
     ///  `address`: [Address] - target account address
+    ///  `block_tag`: Option<[BlockTag]> - block state to query: latest (default), pending, or earliest
     ///
     /// # Returns
     ///  count: [u64] - number of transaction sent by the given account
     #[logfn(Info)]
     #[logfn_inputs(Debug)]
-    pub async fn get_transaction_count(&self, address: &Address) -> VdrResult<u64> {
-        self.client.get_transaction_count(address).await
+    pub async fn get_transaction_count(
+        &self,
+        address: &Address,
+        block_tag: Option<BlockTag>,
+    ) -> VdrResult<u64> {
+        self.client.get_transaction_count(address, block_tag).await
     }
 
     pub(crate) fn contract(&self, name: &str) -> VdrResult<&dyn Contract> {
@@ -496,7 +501,9 @@ pub mod test {
         .unwrap();
 
         let mut client = MockClient::new();
-        client.expect_get_transaction_count().returning(|_| Ok(0));
+        client
+            .expect_get_transaction_count()
+            .returning(|_, _| Ok(0));
 
         ledger_client.client = Box::new(client);
         ledger_client
@@ -537,16 +544,33 @@ pub mod test {
             let mut mock_client = MockClient::new();
             mock_client
                 .expect_get_transaction_count()
-                .with(eq(TRUSTEE_ACCOUNT.clone()))
-                .returning(|_| Ok(42));
+                .with(eq(TRUSTEE_ACCOUNT.clone()), eq(None))
+                .returning(|_, _| Ok(42));
             let client = mock_custom_client(Box::new(mock_client));
 
             let count = client
-                .get_transaction_count(&TRUSTEE_ACCOUNT)
+                .get_transaction_count(&TRUSTEE_ACCOUNT, None)
                 .await
                 .unwrap();
 
             assert_eq!(42, count);
+        }
+
+        #[async_std::test]
+        async fn get_transaction_count_with_block_tag_test() {
+            let mut mock_client = MockClient::new();
+            mock_client
+                .expect_get_transaction_count()
+                .with(eq(TRUSTEE_ACCOUNT.clone()), eq(Some(BlockTag::Pending)))
+                .returning(|_, _| Ok(43));
+            let client = mock_custom_client(Box::new(mock_client));
+
+            let count = client
+                .get_transaction_count(&TRUSTEE_ACCOUNT, Some(BlockTag::Pending))
+                .await
+                .unwrap();
+
+            assert_eq!(43, count);
         }
 
         #[test]
@@ -751,7 +775,7 @@ pub mod test {
             let client = client();
 
             let get_nonce_err = client
-                .get_transaction_count(&Address::from(INVALID_ADDRESS))
+                .get_transaction_count(&Address::from(INVALID_ADDRESS), None)
                 .await
                 .unwrap_err();
 

@@ -30,6 +30,9 @@ export type DidString =
 /** Ethereum account address (`0x` + 40 hex chars) */
 export type AddressString = string;
 
+/** Block state used when querying an account's transaction count (nonce) */
+export type BlockTag = 'latest' | 'pending' | 'earliest';
+
 export interface ContractSpec {
   contractName: string;
   abi: Array<Record<string, unknown>>;
@@ -336,6 +339,9 @@ extern "C" {
 
     #[wasm_bindgen(typescript_type = "Promise<bigint>")]
     pub type PromiseBigInt;
+
+    #[wasm_bindgen(typescript_type = "BlockTag | undefined | null")]
+    pub type OptionalBlockTag;
 
     #[wasm_bindgen(typescript_type = "SignatureData")]
     pub type SignatureDataJS;

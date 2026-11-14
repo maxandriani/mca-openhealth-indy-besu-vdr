@@ -6,7 +6,7 @@ use crate::{
     client::Client,
     error::{VdrError, VdrResult},
     types::EventQuery,
-    Address, Block, BlockDetails, Transaction,
+    Address, Block, BlockDetails, BlockTag, Transaction,
 };
 
 use async_std::task;
@@ -69,8 +69,16 @@ impl Web3Client {
 #[cfg_attr(not(feature = "wasm"), async_trait)]
 #[cfg_attr(feature = "wasm", async_trait(? Send))]
 impl Client for Web3Client {
-    async fn get_transaction_count(&self, address: &Address) -> VdrResult<u64> {
-        trace!("Web3Client::get_transaction_count(address: {:?})", address);
+    async fn get_transaction_count(
+        &self,
+        address: &Address,
+        block_tag: Option<BlockTag>,
+    ) -> VdrResult<u64> {
+        trace!(
+            "Web3Client::get_transaction_count(address: {:?}, block_tag: {:?})",
+            address,
+            block_tag
+        );
 
         let account_address = EthAddress::from_str(address.as_ref()).map_err(|_| {
             VdrError::ClientInvalidTransaction(format!(
@@ -79,10 +87,16 @@ impl Client for Web3Client {
             ))
         })?;
 
+        let block_number = block_tag.map(|tag| match tag {
+            BlockTag::Latest => BlockNumber::Latest,
+            BlockTag::Pending => BlockNumber::Pending,
+            BlockTag::Earliest => BlockNumber::Earliest,
+        });
+
         let count = self
             .client
             .eth()
-            .transaction_count(account_address, None)
+            .transaction_count(account_address, block_number)
             .await?
             .as_u64();
 

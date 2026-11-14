@@ -16,7 +16,7 @@ pub use endorsing_data::TransactionEndorsingData;
 pub use event_query::{EventLog, EventQuery};
 pub use signature::SignatureData;
 pub use status::{PingStatus, Status};
-pub use transaction::{Block, BlockDetails, Nonce, Transaction, TransactionType};
+pub use transaction::{Block, BlockDetails, BlockTag, Nonce, Transaction, TransactionType};
 
 pub(crate) use contract::{ContractEvent, ContractOutput, MethodStringParam, MethodUintBytesParam};
 pub(crate) use endorsing_data::TransactionEndorsingDataBuilder;

@@ -8,7 +8,7 @@ use crate::{
         error::VdrResult,
         event_query::{EventLog, EventQuery},
         transaction::Transaction,
-        types::{ContractConfig, PingStatus, QuorumConfig},
+        types::{BlockTag, ContractConfig, PingStatus, QuorumConfig},
     },
     VdrError,
 };
@@ -70,9 +70,13 @@ impl LedgerClient {
         self.client.get_receipt(&hash).await.map_err(VdrError::from)
     }
 
-    pub async fn get_transaction_count(&self, address: &str) -> VdrResult<u64> {
+    pub async fn get_transaction_count(
+        &self,
+        address: &str,
+        block_tag: Option<BlockTag>,
+    ) -> VdrResult<u64> {
         self.client
-            .get_transaction_count(&Address::from(address))
+            .get_transaction_count(&Address::from(address), block_tag.map(Into::into))
             .await
             .map_err(VdrError::from)
     }
